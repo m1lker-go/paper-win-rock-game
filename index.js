@@ -9,8 +9,32 @@ const webhookUrl = 'https://paper-win-rock.onrender.com';
 const bot = new TelegramBot(token, { polling: false });
 const app = express();
 
+// ДИАГНОСТИКА: Показываем структуру проекта при запуске
+console.log('=== НАЧАЛО ДИАГНОСТИКИ ===');
+console.log('Текущая директория:', __dirname);
+console.log('Содержимое корневой директории:');
+try {
+    const rootFiles = fs.readdirSync(__dirname);
+    console.log(rootFiles);
+} catch (err) {
+    console.error('Ошибка чтения корневой директории:', err.message);
+}
+
+console.log('\nПроверяем существование папки public:');
+const publicPath = path.join(__dirname, 'public');
+console.log('Путь к public:', publicPath);
+console.log('Папка public существует?', fs.existsSync(publicPath));
+
+if (fs.existsSync(publicPath)) {
+    console.log('Содержимое public:');
+    const publicFiles = fs.readdirSync(publicPath);
+    console.log(publicFiles);
+}
+
+console.log('=== КОНЕЦ ДИАГНОСТИКИ ===\n');
+
 // ВАЖНО: Раздача статических файлов из папки public
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(publicPath));
 
 // Главная страница
 app.get('/', (req, res) => {
@@ -78,25 +102,34 @@ app.get('/', (req, res) => {
 app.get('/app', (req, res) => {
     const filePath = path.join(__dirname, 'public', 'index.html');
     
-    // Проверяем существует ли файл
-    fs.access(filePath, fs.constants.F_OK, (err) => {
-        if (err) {
-            console.error(`Файл не найден: ${filePath}`);
-            console.error(`Текущая директория: ${__dirname}`);
-            console.error(`Содержимое public:`, fs.readdirSync(path.join(__dirname, 'public')));
-            res.status(404).send('Файл index.html не найден');
-            return;
+    console.log(`\n=== ЗАПРОС К /app ===`);
+    console.log('Ищем файл по пути:', filePath);
+    console.log('Файл существует?', fs.existsSync(filePath));
+    
+    if (!fs.existsSync(filePath)) {
+        // Пробуем альтернативные пути
+        console.log('Пробуем альтернативные пути...');
+        const altPaths = [
+            path.join(__dirname, 'public', 'index.html'),
+            path.join(process.cwd(), 'public', 'index.html'),
+            '/opt/render/project/src/public/index.html',
+            '/opt/render/project/public/index.html'
+        ];
+        
+        for (const altPath of altPaths) {
+            console.log(`Проверяем: ${altPath} - ${fs.existsSync(altPath) ? 'СУЩЕСТВУЕТ' : 'не существует'}`);
+            if (fs.existsSync(altPath)) {
+                console.log(`Отправляем файл: ${altPath}`);
+                return res.sendFile(altPath);
+            }
         }
         
-        console.log(`Отправляем файл: ${filePath}`);
-        res.sendFile(filePath);
-    });
-});
-
-// Вебхук от Telegram
-app.post('/webhook', (req, res) => {
-    bot.processUpdate(req.body);
-    res.sendStatus(200);
+        console.log('Файл index.html не найден ни по одному из путей');
+        return res.status(404).send('Файл index.html не найден. Проверьте логи на Render.');
+    }
+    
+    console.log(`Отправляем файл: ${filePath}`);
+    res.sendFile(filePath);
 });
 
 // Health check для Render
@@ -128,20 +161,12 @@ bot.onText(/\/start/, (msg) => {
     );
 });
 
-// Запуск сервера - ВАЖНО: Используем только порт из переменной окружения
+// Запуск сервера
 const PORT = process.env.PORT || 10000;
 
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`🎮 Mini App: ${webhookUrl}/app`);
     console.log(`🏠 Главная: ${webhookUrl}/`);
-    
-    // Логируем структуру папок для отладки
-    console.log(`Текущая директория: ${__dirname}`);
-    try {
-        const publicFiles = fs.readdirSync(path.join(__dirname, 'public'));
-        console.log(`Файлы в public:`, publicFiles);
-    } catch (err) {
-        console.error(`Ошибка чтения папки public:`, err.message);
-    }
+    console.log(`📁 Текущая рабочая директория: ${process.cwd()}`);
 });
