@@ -1,5 +1,22 @@
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
+// Установка кнопки меню через библиотеку
+async function setMenuButton() {
+    try {
+        await bot.setChatMenuButton({
+            menu_button: {
+                type: 'web_app',
+                text: '🎮 Играть',
+                web_app: {
+                    url: `${webhookUrl}/app`
+                }
+            }
+        });
+        console.log('✅ Menu button set successfully!');
+    } catch (error) {
+        console.error('❌ Error setting menu button:', error.message);
+    }
+}
 
 // НОВЫЙ ТОКЕН БОТА (исправленный!)
 const token = '8365584044:AAESH0_vHwEhN9P05xgpJl8MPMNbbEpqRG0';
@@ -88,3 +105,4 @@ const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);
 });
+
