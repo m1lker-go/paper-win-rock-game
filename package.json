@@ -1,10 +1,11 @@
 {
-  "name": "telegram-miniapp-game",
+  "name": "paper-win-rock",
   "version": "2.0.0",
-  "description": "Telegram bot with Mini App for Rock Paper Scissors",
+  "description": "Advanced Telegram game with Mini App, PvP battles, skins and referral system",
   "main": "index.js",
   "scripts": {
-    "start": "node index.js"
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "dependencies": {
     "node-telegram-bot-api": "^0.61.0",
@@ -12,6 +13,6 @@
     "axios": "^1.6.0"
   },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=16.0.0"
   }
 }
