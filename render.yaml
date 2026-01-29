@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: paper-win-rock
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BOT_TOKEN
+        sync: false
+    healthCheckPath: /health
+    healthCheckTimeout: 10
+    healthCheckInterval: 60
+    autoDeploy: true
+    plan: free

@@ -1,0 +1,84 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle, #1b1b1b, #0e0e0e);
+  color: #fff;
+  font-family: Arial, sans-serif;
+  height: 100vh;
+}
+
+#app {
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.hidden {
+  display: none;
+}
+
+button {
+  background: linear-gradient(180deg, #ff9f1a, #ff7a00);
+  border: none;
+  padding: 14px 28px;
+  border-radius: 14px;
+  color: #000;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+button:hover {
+  transform: scale(1.05);
+}
+
+.loader {
+  width: 60px;
+  height: 60px;
+  border: 6px solid #333;
+  border-top: 6px solid orange;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.arena {
+  display: flex;
+  gap: 60px;
+  font-size: 80px;
+}
+
+.hand {
+  transition: transform 0.5s ease;
+}
+
+#timer {
+  font-size: 32px;
+}
+
+.choices {
+  display: flex;
+  gap: 16px;
+}
+
+.battle-buttons {
+  position: fixed;
+  bottom: 20px;
+  display: flex;
+  gap: 16px;
+}

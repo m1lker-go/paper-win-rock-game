@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Paper-Win-Rock</title>
+  <link rel="stylesheet" href="./style.css">
+  <!-- Telegram WebApp SDK -->
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <style>
+    #loading {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, #1b1b1b, #0e0e0e);
+      color: white;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      z-index: 10000;
+      font-family: Arial, sans-serif;
+    }
+    
+    .loading-spinner {
+      width: 50px;
+      height: 50px;
+      border: 5px solid #333;
+      border-top: 5px solid orange;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+      margin-bottom: 20px;
+    }
+    
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+  </style>
+</head>
+<body>
+
+<!-- Прелоадер -->
+<div id="loading">
+  <div class="loading-spinner"></div>
+  <h2>Paper-Win-Rock</h2>
+  <p>Игра загружается...</p>
+  <p style="font-size: 14px; color: #aaa; margin-top: 20px;">
+    Если загрузка занимает больше минуты,<br>обновите страницу
+  </p>
+</div>
+
+<div id="app" style="display: none;">
+  <section id="menu" class="screen">
+    <h1>Paper-Win-Rock</h1>
+    <div id="gold">💎 100</div>
+
+    <button data-screen="search">🎮 СРАЖЕНИЕ</button>
+    <button data-screen="shop">🛒 МАГАЗИН</button>
+    <button data-screen="quests">📋 ЗАДАНИЯ</button>
+    <button data-screen="bag">🎒 РЮКЗАК</button>
+    
+    <div style="margin-top: 30px; font-size: 12px; color: #666;">
+      Версия 1.0 | Render
+    </div>
+  </section>
+
+  <section id="search" class="screen hidden">
+    <p>🔍 Поиск соперника…</p>
+    <div class="loader"></div>
+    <button id="cancelSearch">ОТМЕНА</button>
+  </section>
+
+  <section id="battle" class="screen hidden">
+    <div id="timer">10</div>
+
+    <div class="arena">
+      <div id="playerHand" class="hand">✊</div>
+      <div id="enemyHand" class="hand hidden">✊</div>
+    </div>
+
+    <div class="choices">
+      <button data-choice="rock">✊ Камень</button>
+      <button data-choice="scissors">✌ Ножницы</button>
+      <button data-choice="paper">✋ Бумага</button>
+    </div>
+
+    <div id="status"></div>
+
+    <div class="battle-buttons">
+      <button id="playAgain" class="hidden">🔄 Сыграть ещё</button>
+      <button id="toMenu" class="hidden">↩️ В меню</button>
+    </div>
+  </section>
+</div>
+
+<script>
+// Скрываем прелоадер когда игра загрузилась
+window.addEventListener('load', function() {
+  setTimeout(function() {
+    document.getElementById('loading').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+  }, 1000);
+});
+
+// Или через 5 секунд на всякий случай
+setTimeout(function() {
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}, 5000);
+</script>
+
+<script src="./game.js"></script>
+</body>
+</html>
