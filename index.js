@@ -198,19 +198,31 @@ async function setupMenuButton() {
 const PORT = process.env.PORT || 3000;
 
 app.listen(PORT, async () => {
-    console.log(`🚀 Server running on port ${PORT}`);
-    console.log(`🎮 Game URL: ${webhookUrl}/app`);
+    console.log(`
+    ╔══════════════════════════════════════╗
+    ║     PAPER WIN ROCK ЗАПУЩЕН! 🚀      ║
+    ╠══════════════════════════════════════╣
+    ║  Порт: ${PORT}                          
+    ║  URL: ${webhookUrl}                 
+    ║  Mini App: ${webhookUrl}/app        
+    ╠══════════════════════════════════════╣
+    ║  Проверка:                           
+    ║  • ${webhookUrl}/ - главная страница
+    ║  • ${webhookUrl}/app - игра          
+    ║  • ${webhookUrl}/health - статус     
+    ╚══════════════════════════════════════╝
+    `);
     
     // Установка вебхука
     try {
         await bot.setWebHook(`${webhookUrl}/webhook`);
-        console.log('✅ Webhook set');
+        console.log('✅ Вебхук установлен');
     } catch (error) {
-        console.log('❌ Webhook error:', error.message);
+        console.log('❌ Ошибка вебхука:', error.message);
     }
     
     // Настройка кнопки меню
     await setupMenuButton();
     
-    console.log('\n📱 Game is ready! Players can start playing.');
+    console.log('\n📱 Бот готов! Ищите @PaperWinRock_bot в Telegram\n');
 });
