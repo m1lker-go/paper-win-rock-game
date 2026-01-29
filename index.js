@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api');
 const express = require('express');
 const path = require('path');
+const fs = require('fs');
 
 const token = '8365584044:AAESH0_vHwEhN9P05xgpJl8MPMNbbEpqRG0';
 const webhookUrl = 'https://paper-win-rock.onrender.com';
@@ -75,7 +76,21 @@ app.get('/', (req, res) => {
 
 // Явный маршрут для /app (на всякий случай)
 app.get('/app', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    const filePath = path.join(__dirname, 'public', 'index.html');
+    
+    // Проверяем существует ли файл
+    fs.access(filePath, fs.constants.F_OK, (err) => {
+        if (err) {
+            console.error(`Файл не найден: ${filePath}`);
+            console.error(`Текущая директория: ${__dirname}`);
+            console.error(`Содержимое public:`, fs.readdirSync(path.join(__dirname, 'public')));
+            res.status(404).send('Файл index.html не найден');
+            return;
+        }
+        
+        console.log(`Отправляем файл: ${filePath}`);
+        res.sendFile(filePath);
+    });
 });
 
 // Вебхук от Telegram
@@ -113,9 +128,6 @@ bot.onText(/\/start/, (msg) => {
     );
 });
 
-// УДАЛЕНО: Настройка вебхука (оставлено только прослушивание)
-// Используется только polling или webhook (у вас polling false, но вебхук настроен)
-
 // Запуск сервера - ВАЖНО: Используем только порт из переменной окружения
 const PORT = process.env.PORT || 10000;
 
@@ -123,4 +135,13 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`🚀 Server running on port ${PORT}`);
     console.log(`🎮 Mini App: ${webhookUrl}/app`);
     console.log(`🏠 Главная: ${webhookUrl}/`);
+    
+    // Логируем структуру папок для отладки
+    console.log(`Текущая директория: ${__dirname}`);
+    try {
+        const publicFiles = fs.readdirSync(path.join(__dirname, 'public'));
+        console.log(`Файлы в public:`, publicFiles);
+    } catch (err) {
+        console.error(`Ошибка чтения папки public:`, err.message);
+    }
 });
