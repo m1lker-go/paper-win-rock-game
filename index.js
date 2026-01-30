@@ -696,3 +696,4 @@ app.listen(PORT, '0.0.0.0', async () => {
         console.error('❌ Ошибка webhook:', err);
     }
 });
+
