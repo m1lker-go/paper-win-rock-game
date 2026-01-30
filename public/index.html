@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paper Win Rock 🎮</title>
+    <base href="/">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <!-- Экран загрузки -->
+    <div id="loading-screen">
+        <div class="loader">
+            <div class="rocket">🚀</div>
+            <div class="loading-text">Загрузка игры...</div>
+            <div class="progress-bar">
+                <div class="progress"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Главное меню -->
+    <div id="main-menu" class="screen hidden">
+        <div class="header">
+            <div class="user-info">
+                <div class="avatar" id="user-avatar">👤</div>
+                <div class="user-details">
+                    <h2 id="username">Игрок</h2>
+                    <div class="diamonds">
+                        <i class="fas fa-gem"></i>
+                        <span id="diamond-count">100</span>
+                    </div>
+                </div>
+            </div>
+            <button class="settings-btn" onclick="showSettings()">
+                <i class="fas fa-cog"></i>
+            </button>
+        </div>
+
+        <div class="menu-container">
+            <div class="welcome-message">
+                <h1>🎮 Paper Win Rock</h1>
+                <p class="subtitle">Выбери режим игры</p>
+            </div>
+
+            <div class="menu-buttons">
+                <button class="menu-btn battle-btn" onclick="startGame('bot')">
+                    <i class="fas fa-robot"></i>
+                    <span>ИГРАТЬ С БОТОМ</span>
+                    <small>Быстрая игра</small>
+                </button>
+                <button class="menu-btn pvp-btn" onclick="showScreen('pvp-search')">
+                    <i class="fas fa-users"></i>
+                    <span>PvP БИТВА</span>
+                    <small>Против игроков</small>
+                </button>
+                <button class="menu-btn shop-btn" onclick="showScreen('shop')">
+                    <i class="fas fa-shopping-cart"></i>
+                    <span>МАГАЗИН</span>
+                    <small>Купить скины</small>
+                </button>
+                <button class="menu-btn backpack-btn" onclick="showScreen('backpack')">
+                    <i class="fas fa-backpack"></i>
+                    <span>КОЛЛЕКЦИЯ</span>
+                    <small>Твои скины</small>
+                </button>
+            </div>
+
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-wins">0</div>
+                        <div class="stat-label">Побед</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">💔</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-losses">0</div>
+                        <div class="stat-label">Поражений</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-content">
+                        <div class="stat-value" id="stat-streak">0</div>
+                        <div class="stat-label">Винстрик</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer-menu">
+            <button class="footer-btn" onclick="showScreen('tasks')">
+                <i class="fas fa-tasks"></i> Задания
+            </button>
+            <button class="footer-btn" onclick="showScreen('friends')">
+                <i class="fas fa-user-friends"></i> Друзья
+            </button>
+            <button class="footer-btn" onclick="showScreen('leaderboard')">
+                <i class="fas fa-trophy"></i> Топ
+            </button>
+        </div>
+    </div>
+
+    <!-- Экран выбора сложности -->
+    <div id="difficulty-screen" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>ВЫБЕРИ СЛОЖНОСТЬ</h2>
+        </div>
+
+        <div class="difficulty-options">
+            <button class="difficulty-btn easy" onclick="startBotGame('easy')">
+                <div class="difficulty-icon">😊</div>
+                <div class="difficulty-info">
+                    <h3>НОВИЧОК</h3>
+                    <p>Идеально для начала</p>
+                    <div class="reward-info">Награда: +3 алмаза</div>
+                </div>
+            </button>
+
+            <button class="difficulty-btn medium" onclick="startBotGame('medium')">
+                <div class="difficulty-icon">😎</div>
+                <div class="difficulty-info">
+                    <h3>ОПЫТНЫЙ</h3>
+                    <p>Сбалансированная игра</p>
+                    <div class="reward-info">Награда: +5 алмазов</div>
+                </div>
+            </button>
+
+            <button class="difficulty-btn hard" onclick="startBotGame('hard')">
+                <div class="difficulty-icon">🤖</div>
+                <div class="difficulty-info">
+                    <h3>ЭКСПЕРТ</h3>
+                    <p>Для настоящих чемпионов</p>
+                    <div class="reward-info">Награда: +10 алмазов</div>
+                </div>
+            </button>
+        </div>
+
+        <div class="difficulty-tip">
+            <i class="fas fa-lightbulb"></i>
+            <p>Начни с новичка и постепенно повышай сложность!</p>
+        </div>
+    </div>
+
+    <!-- Поиск PvP -->
+    <div id="pvp-search" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>ПОИСК ПРОТИВНИКА</h2>
+        </div>
+
+        <div class="searching-content">
+            <div class="searching-animation">
+                <div class="radar"></div>
+                <div class="searching-text">Ищем живого соперника...</div>
+                <div class="searching-details">
+                    <div class="search-stat">
+                        <i class="fas fa-users"></i>
+                        <span id="online-count">1,234</span> онлайн
+                    </div>
+                    <div class="search-stat">
+                        <i class="fas fa-bolt"></i>
+                        Среднее время: <span id="avg-time">15</span> сек
+                    </div>
+                </div>
+            </div>
+
+            <div class="search-timer">
+                <div class="timer-circle">
+                    <div class="timer-text" id="search-timer">15</div>
+                </div>
+                <div class="timer-label">СЕКУНД</div>
+            </div>
+
+            <div class="search-tip">
+                <i class="fas fa-info-circle"></i>
+                <p>Пока ждёшь, можешь посмотреть магазин скинов!</p>
+            </div>
+
+            <button class="cancel-search-btn" onclick="cancelSearch()">
+                <i class="fas fa-times"></i> ОТМЕНИТЬ ПОИСК
+            </button>
+        </div>
+    </div>
+
+    <!-- Экран боя -->
+    <div id="battle-screen" class="screen hidden">
+        <div class="battle-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2 id="battle-mode">БОЙ С БОТОМ</h2>
+            <div class="battle-timer">
+                <i class="fas fa-clock"></i>
+                <span id="round-timer">10</span>
+            </div>
+        </div>
+
+        <div class="battle-content">
+            <div class="players-container">
+                <div class="player-card you">
+                    <div class="player-avatar" id="player1-avatar">👤</div>
+                    <div class="player-name" id="player1-name">Вы</div>
+                    <div class="player-stats">
+                        <div class="stat">🏆 <span id="player1-wins">0</span></div>
+                        <div class="stat">💎 <span id="player1-diamonds">100</span></div>
+                    </div>
+                    <div class="player-choice" id="player1-choice">❓</div>
+                </div>
+
+                <div class="vs-container">
+                    <div class="vs-text">VS</div>
+                    <div class="round-info" id="round-info">Раунд 1</div>
+                </div>
+
+                <div class="player-card enemy">
+                    <div class="player-avatar" id="player2-avatar">🤖</div>
+                    <div class="player-name" id="player2-name">Бот</div>
+                    <div class="player-stats">
+                        <div class="stat">🤖 <span id="player2-difficulty">Средний</span></div>
+                        <div class="stat">🎯 <span id="bot-winrate">45%</span></div>
+                    </div>
+                    <div class="player-choice" id="player2-choice">❓</div>
+                </div>
+            </div>
+
+            <div class="battle-log" id="battle-log">
+                <div class="log-entry">Выберите ваш ход!</div>
+            </div>
+
+            <div class="choices-container">
+                <button class="choice-btn rock-btn" onclick="makeChoice('rock')" id="rock-btn">
+                    <div class="choice-skin" id="rock-skin">✊</div>
+                    <div class="choice-name">КАМЕНЬ</div>
+                    <div class="choice-hint">Бьёт ножницы</div>
+                </button>
+
+                <button class="choice-btn paper-btn" onclick="makeChoice('paper')" id="paper-btn">
+                    <div class="choice-skin" id="paper-skin">✋</div>
+                    <div class="choice-name">БУМАГА</div>
+                    <div class="choice-hint">Бьёт камень</div>
+                </button>
+
+                <button class="choice-btn scissors-btn" onclick="makeChoice('scissors')" id="scissors-btn">
+                    <div class="choice-skin" id="scissors-skin">✌️</div>
+                    <div class="choice-name">НОЖНИЦЫ</div>
+                    <div class="choice-hint">Бьют бумагу</div>
+                </button>
+            </div>
+
+            <div class="battle-controls">
+                <button class="control-btn hint-btn" onclick="showHint()">
+                    <i class="fas fa-lightbulb"></i> ПОДСКАЗКА
+                </button>
+                <button class="control-btn surrender-btn" onclick="surrender()">
+                    <i class="fas fa-flag"></i> СДАЮСЬ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Результат боя -->
+    <div id="result-screen" class="screen hidden">
+        <div class="result-content">
+            <div class="result-title" id="result-title">ПОБЕДА!</div>
+            <div class="result-icon" id="result-icon">🏆</div>
+            <div class="result-details">
+                <div class="result-message" id="result-message">Вы обыграли бота!</div>
+                <div class="result-reward">
+                    <i class="fas fa-gem"></i>
+                    <span id="reward-amount">+5 алмазов</span>
+                </div>
+                <div class="result-stats">
+                    <div class="stat">
+                        <span class="label">Ваш выбор:</span>
+                        <span class="value" id="your-choice">✊ Камень</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Противник:</span>
+                        <span class="value" id="enemy-choice">✌️ Ножницы</span>
+                    </div>
+                    <div class="stat">
+                        <span class="label">Время:</span>
+                        <span class="value" id="battle-time">5.2 сек</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="result-buttons">
+                <button class="result-btn play-again" onclick="playAgain()">
+                    <i class="fas fa-redo"></i> ИГРАТЬ СНОВА
+                </button>
+                <button class="result-btn share" onclick="shareResult()">
+                    <i class="fas fa-share-alt"></i> ПОДЕЛИТЬСЯ
+                </button>
+                <button class="result-btn menu" onclick="showScreen('main-menu')">
+                    <i class="fas fa-home"></i> В МЕНЮ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Магазин -->
+    <div id="shop-screen" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>МАГАЗИН СКИНОВ</h2>
+            <div class="shop-balance">
+                <i class="fas fa-gem"></i>
+                <span id="shop-balance">100</span>
+            </div>
+        </div>
+
+        <div class="shop-tabs">
+            <button class="tab-btn active" onclick="showShopTab('all')">Все</button>
+            <button class="tab-btn" onclick="showShopTab('rock')">Камень</button>
+            <button class="tab-btn" onclick="showShopTab('paper')">Бумага</button>
+            <button class="tab-btn" onclick="showShopTab('scissors')">Ножницы</button>
+            <button class="tab-btn" onclick="showShopTab('special')">Особые</button>
+        </div>
+
+        <div class="shop-filters">
+            <div class="filter-group">
+                <label>Сортировка:</label>
+                <select id="shop-sort" onchange="sortShopItems()">
+                    <option value="price">По цене</option>
+                    <option value="new">Новые</option>
+                    <option value="popular">Популярные</option>
+                </select>
+            </div>
+            <button class="filter-btn" onclick="toggleOwnedFilter()">
+                <i class="fas fa-eye"></i> Показать купленные
+            </button>
+        </div>
+
+        <div class="shop-items-container" id="shop-items">
+            <!-- Скины будут загружены через JavaScript -->
+        </div>
+    </div>
+
+    <!-- Коллекция -->
+    <div id="backpack-screen" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>МОЯ КОЛЛЕКЦИЯ</h2>
+            <div class="collection-stats">
+                <span id="owned-count">1</span>/<span id="total-skins">12</span>
+            </div>
+        </div>
+
+        <div class="collection-tabs">
+            <button class="tab-btn active" onclick="showCollectionTab('equipped')">
+                <i class="fas fa-check-circle"></i> Надето
+            </button>
+            <button class="tab-btn" onclick="showCollectionTab('owned')">
+                <i class="fas fa-box"></i> Все скины
+            </button>
+            <button class="tab-btn" onclick="showCollectionTab('favorites')">
+                <i class="fas fa-heart"></i> Избранное
+            </button>
+        </div>
+
+        <div class="equipped-skins">
+            <div class="equipped-title">Сейчас надето:</div>
+            <div class="equipped-items">
+                <div class="equipped-item">
+                    <div class="equipped-icon" id="current-rock">✊</div>
+                    <div class="equipped-name">Камень</div>
+                    <button class="change-btn" onclick="changeSkin('rock')">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                </div>
+                <div class="equipped-item">
+                    <div class="equipped-icon" id="current-paper">✋</div>
+                    <div class="equipped-name">Бумага</div>
+                    <button class="change-btn" onclick="changeSkin('paper')">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                </div>
+                <div class="equipped-item">
+                    <div class="equipped-icon" id="current-scissors">✌️</div>
+                    <div class="equipped-name">Ножницы</div>
+                    <button class="change-btn" onclick="changeSkin('scissors')">
+                        <i class="fas fa-exchange-alt"></i>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="collection-container" id="collection-items">
+            <!-- Коллекция будет загружена через JavaScript -->
+        </div>
+    </div>
+
+    <!-- Задания -->
+    <div id="tasks-screen" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>ЕЖЕДНЕВНЫЕ ЗАДАНИЯ</h2>
+            <div class="tasks-progress">
+                <div class="progress-text">
+                    <span id="completed-tasks">0</span>/<span id="total-tasks">5</span>
+                </div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="tasks-progress"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="daily-rewards">
+            <h3><i class="fas fa-calendar-day"></i> Награда за вход</h3>
+            <div class="rewards-container">
+                <div class="reward-day active">
+                    <div class="day">День 1</div>
+                    <div class="reward">
+                        <i class="fas fa-gem"></i>
+                        <span>10</span>
+                    </div>
+                </div>
+                <div class="reward-day">
+                    <div class="day">День 2</div>
+                    <div class="reward">
+                        <i class="fas fa-gem"></i>
+                        <span>20</span>
+                    </div>
+                </div>
+                <div class="reward-day">
+                    <div class="day">День 3</div>
+                    <div class="reward">
+                        <i class="fas fa-star"></i>
+                        <span>Особый скин</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tasks-container" id="tasks-list">
+            <!-- Задания будут загружены через JavaScript -->
+        </div>
+
+        <div class="referal-section">
+            <h3><i class="fas fa-user-plus"></i> Пригласи друзей</h3>
+            <div class="referal-link-container">
+                <input type="text" id="referal-link" readonly value="Загрузка...">
+                <button class="copy-btn" onclick="copyReferalLink()">
+                    <i class="fas fa-copy"></i>
+                </button>
+            </div>
+            <div class="referal-stats">
+                <div class="stat">
+                    <div class="value" id="referal-count">0</div>
+                    <div class="label">Приглашено</div>
+                </div>
+                <div class="stat">
+                    <div class="value" id="referal-earned">0</div>
+                    <div class="label">Заработано</div>
+                </div>
+                <div class="stat">
+                    <div class="value" id="referal-bonus">50</div>
+                    <div class="label">За каждого</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Настройки -->
+    <div id="settings-screen" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>НАСТРОЙКИ</h2>
+        </div>
+
+        <div class="settings-content">
+            <div class="setting-group">
+                <h3><i class="fas fa-volume-up"></i> Звук</h3>
+                <div class="setting-option">
+                    <span>Эффекты</span>
+                    <label class="switch">
+                        <input type="checkbox" id="sound-effects" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-option">
+                    <span>Музыка</span>
+                    <label class="switch">
+                        <input type="checkbox" id="bg-music" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3><i class="fas fa-palette"></i> Внешний вид</h3>
+                <div class="setting-option">
+                    <span>Тёмная тема</span>
+                    <label class="switch">
+                        <input type="checkbox" id="dark-theme">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-option">
+                    <span>Анимации</span>
+                    <label class="switch">
+                        <input type="checkbox" id="animations" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3><i class="fas fa-gamepad"></i> Геймплей</h3>
+                <div class="setting-option">
+                    <span>Виброотклик</span>
+                    <label class="switch">
+                        <input type="checkbox" id="vibration" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="setting-option">
+                    <span>Автовыбор</span>
+                    <label class="switch">
+                        <input type="checkbox" id="auto-choice">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3><i class="fas fa-user"></i> Аккаунт</h3>
+                <button class="setting-btn" onclick="changeUsername()">
+                    <i class="fas fa-edit"></i> Сменить имя
+                </button>
+                <button class="setting-btn" onclick="showReferalCode()">
+                    <i class="fas fa-share-alt"></i> Реферальный код
+                </button>
+                <button class="setting-btn" onclick="exportData()">
+                    <i class="fas fa-download"></i> Экспорт данных
+                </button>
+            </div>
+
+            <div class="setting-group">
+                <h3><i class="fas fa-info-circle"></i> О приложении</h3>
+                <div class="about-info">
+                    <p>Paper Win Rock v1.0</p>
+                    <p>Создано с ❤️ для Telegram</p>
+                    <p>Все права защищены © 2024</p>
+                </div>
+                <button class="setting-btn" onclick="showSupport()">
+                    <i class="fas fa-headset"></i> Поддержка
+                </button>
+                <button class="setting-btn" onclick="rateApp()">
+                    <i class="fas fa-star"></i> Оценить приложение
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомления -->
+    <div id="notification" class="hidden">
+        <div class="notification-content">
+            <i class="fas fa-check-circle"></i>
+            <span id="notification-text">Уведомление</span>
+        </div>
+    </div>
+
+    <!-- Подсказка -->
+    <div id="hint-overlay" class="hidden">
+        <div class="hint-content">
+            <h3><i class="fas fa-lightbulb"></i> Подсказка</h3>
+            <div class="hint-text" id="hint-text">
+                Камень бьёт ножницы, ножницы бьют бумагу, бумага бьёт камень.
+                Попробуй предугадать ход противника!
+            </div>
+            <button class="hint-close" onclick="closeHint()">Понятно!</button>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>
