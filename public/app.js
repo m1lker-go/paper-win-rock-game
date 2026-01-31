@@ -1,157 +1,287 @@
-// Глобальные переменные
+// Минимальный рабочий код игры - адаптивный
 let currentScreen = 'loading';
 let userData = null;
 let currentGame = null;
 let gameTimer = null;
-let battleAnimationInterval = null;
-let waitingAnimationActive = true;
 
-// Дни недели для ежедневных заданий
-const daysOfWeek = ['воскресенье', 'понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу'];
+// Основная функция инициализации
+function initGame() {
+    console.log('Инициализация игры...');
+    
+    // Создаем тестового пользователя
+    userData = {
+        id: 'user_' + Date.now(),
+        username: 'Игрок',
+        diamonds: 100,
+        wins: 0,
+        losses: 0,
+        stats: {
+            winStreak: 0,
+            bestWinStreak: 0,
+            totalGames: 0
+// app.js
+let gameState = {
+    diamonds: 100,
+    wins: 0,
+    losses: 0,
+    streak: 0,
+    user: null,
+    skins: {},
+    settings: {}
+};
 
 // Инициализация при загрузке
-document.addEventListener('DOMContentLoaded', () => {
-    console.log('Игра загружается...');
+document.addEventListener('DOMContentLoaded', async function() {
+    console.log('DOM загружен, начинаем инициализацию...');
     
-    // Проверяем Telegram Web App
-    if (window.Telegram?.WebApp) {
-        Telegram.WebApp.ready();
-        Telegram.WebApp.expand();
-        Telegram.WebApp.setHeaderColor('#2d3436');
-        Telegram.WebApp.setBackgroundColor('#1a1a2e');
-        
-        const initData = Telegram.WebApp.initDataUnsafe;
-        if (initData?.user) {
-            userData = {
-                id: initData.user.id.toString(),
-                username: initData.user.username || `Игрок_${initData.user.id.toString().slice(-4)}`,
-                firstName: initData.user.first_name || 'Игрок',
-                lastName: initData.user.last_name || '',
-                isPremium: initData.user.is_premium || false,
-                languageCode: initData.user.language_code || 'ru'
-            };
-            console.log('Telegram пользователь:', userData);
+    try {
+        // 1. Инициализируем Telegram
+        if (typeof initTelegramWebApp === 'function') {
+            gameState.user = initTelegramWebApp();
+            console.log('Пользователь:', gameState.user);
+            
+            if (gameState.user) {
+                document.getElementById('username').textContent = gameState.user.firstName;
+            }
         }
-    }
+    };
     
-    // Если не в Telegram, создаем тестового пользователя
-    if (!userData) {
-        userData = {
-            id: 'test_' + Date.now(),
-            username: 'ТестовыйИгрок',
-            firstName: 'Игрок',
-            isPremium: false
-        };
-        console.log('Тестовый пользователь:', userData);
-    }
+    // Создаем базовую структуру если её нет
+    createGameStructure();
     
-    // Инициализируем данные пользователя
-    initUserData();
-    
-    // Запускаем загрузку
+    // Запускаем прогресс-бар
     startLoading();
     
-    // Устанавливаем дату последнего входа
-    updateLastLogin();
-    
-    // Обновляем ежедневные задания если нужно
-    updateDailyTasks();
-});
+    // Через 2 секунды показываем главное меню
+    setTimeout(() => {
+        hideAllScreens();
+        showScreen('main-menu');
+        updateUserUI();
+        console.log('Игра загружена!');
+    }, 2000);
+}
 
-// Инициализация данных пользователя
-function initUserData() {
-    const savedData = localStorage.getItem(`pwr_user_${userData.id}`);
+// Создание базовой структуры игры
+function createGameStructure() {
+    const body = document.body;
     
-    if (savedData) {
-        const parsed = JSON.parse(savedData);
-        userData = { ...userData, ...parsed };
+    // Проверяем и создаем необходимые экраны
+    
+    // Экран загрузки
+    let loadingScreen = document.getElementById('loading-screen');
+    if (!loadingScreen) {
+        loadingScreen = document.createElement('div');
+        loadingScreen.id = 'loading-screen';
+        loadingScreen.className = 'screen active';
+        loadingScreen.innerHTML = `
+            <div class="loader">
+                <div class="rocket">🚀</div>
+                <div class="loading-text">Загрузка игры...</div>
+                <div class="progress-bar">
+                    <div class="progress"></div>
+                </div>
+            </div>
+        `;
+        body.appendChild(loadingScreen);
+    }
+    
+    // Главное меню
+    let mainMenu = document.getElementById('main-menu-screen');
+    if (!mainMenu) {
+        mainMenu = document.createElement('div');
+        mainMenu.id = 'main-menu-screen';
+        mainMenu.className = 'screen';
+        mainMenu.innerHTML = `
+            <div class="header">
+                <div class="user-info">
+                    <div class="avatar" id="user-avatar">👤</div>
+                    <div class="user-details">
+                        <h2 id="username">Игрок</h2>
+                        <div class="diamonds">
+                            <i class="fas fa-gem"></i>
+                            <span id="diamond-count">100</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
         
-        // Проверяем, не был ли это вчерашний день
-        const lastLogin = new Date(parsed.lastLogin || 0);
-        const today = new Date();
-        const isNewDay = lastLogin.getDate() !== today.getDate() || 
-                        lastLogin.getMonth() !== today.getMonth() || 
-                        lastLogin.getFullYear() !== today.getFullYear();
+        // 2. Загружаем состояние из localStorage
+        loadGameState();
         
-        if (isNewDay) {
-            // Сброс ежедневных заданий
-            resetDailyTasks();
-        }
-    } else {
-        // Новый пользователь
-        userData = {
-            ...userData,
-            diamonds: 100,
-            wins: 0,
-            losses: 0,
-            draws: 0,
-            totalGames: 0,
-            skinRock: 'default',
-            skinPaper: 'default',
-            skinScissors: 'default',
-            ownedSkins: ['default'],
-            referalCode: generateReferalCode(),
-            referals: [],
-            referalsCompleted: [],
-            dailyTasks: {},
-            completedTasks: [],
-            lastLogin: new Date().toISOString(),
-            streakDays: 1,
-            lastStreakDate: new Date().toISOString(),
-            inventory: {},
-            stats: {
-                winStreak: 0,
-                bestWinStreak: 0,
-                favoriteChoice: null,
-                mostWinsAgainst: null
-            }
-        };
+        // 3. Обновляем UI
+        updateUI();
+        
+        // 4. Показываем главное меню через 1.5 секунды
+        setTimeout(() => {
+            const loadingScreen = document.getElementById('loading-screen');
+            const mainMenu = document.getElementById('main-menu');
+
+            <div class="menu-container">
+                <div class="menu-buttons">
+                    <button class="menu-btn battle-btn" onclick="startGame('bot')">
+                        <i class="fas fa-robot"></i>
+                        <span>ИГРАТЬ С БОТОМ</span>
+                        <small>Быстрая игра</small>
+                    </button>
+                    <button class="menu-btn pvp-btn" onclick="startPvPSearch()">
+                        <i class="fas fa-users"></i>
+                        <span>PvP БИТВА</span>
+                        <small>Против игроков</small>
+                    </button>
+                    <button class="menu-btn shop-btn" onclick="showScreen('shop')">
+                        <i class="fas fa-shopping-cart"></i>
+                        <span>МАГАЗИН</span>
+                        <small>Купить скины</small>
+                    </button>
+                    <button class="menu-btn backpack-btn" onclick="showScreen('backpack')">
+                        <i class="fas fa-backpack"></i>
+                        <span>КОЛЛЕКЦИЯ</span>
+                        <small>Твои скины</small>
+                    </button>
+                </div>
+            </div>
+        `;
+        body.appendChild(mainMenu);
+    }
+    
+    // Экран выбора сложности
+    let difficultyScreen = document.getElementById('difficulty-screen');
+    if (!difficultyScreen) {
+        difficultyScreen = document.createElement('div');
+        difficultyScreen.id = 'difficulty-screen';
+        difficultyScreen.className = 'screen';
+        difficultyScreen.innerHTML = `
+            <div class="screen-header">
+                <button class="back-btn" onclick="showScreen('main-menu')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2>ВЫБЕРИ СЛОЖНОСТЬ</h2>
+            </div>
+            <div class="difficulty-options">
+                <button class="difficulty-btn easy" onclick="startBotGame('easy')">
+                    <div class="difficulty-icon">😊</div>
+                    <div class="difficulty-info">
+                        <h3>НОВИЧОК</h3>
+                        <p>Идеально для начала</p>
+                        <div class="reward-info">Награда: +3 алмаза</div>
+                    </div>
+                </button>
+                <button class="difficulty-btn medium" onclick="startBotGame('medium')">
+                    <div class="difficulty-icon">😎</div>
+                    <div class="difficulty-info">
+                        <h3>ОПЫТНЫЙ</h3>
+                        <p>Сбалансированная игра</p>
+                        <div class="reward-info">Награда: +5 алмазов</div>
+                    </div>
+                </button>
+                <button class="difficulty-btn hard" onclick="startBotGame('hard')">
+                    <div class="difficulty-icon">🤖</div>
+                    <div class="difficulty-info">
+                        <h3>ЭКСПЕРТ</h3>
+                        <p>Для настоящих чемпионов</p>
+                        <div class="reward-info">Награда: +10 алмазов</div>
+                    </div>
+                </button>
+            </div>
+        `;
+        body.appendChild(difficultyScreen);
+    }
+    
+    // Экран боя
+    let battleScreen = document.getElementById('battle-screen');
+    if (!battleScreen) {
+        battleScreen = document.createElement('div');
+        battleScreen.id = 'battle-screen';
+        battleScreen.className = 'screen';
+        battleScreen.innerHTML = `
+            <div class="battle-header">
+                <button class="back-btn" onclick="showScreen('main-menu')">
+                    <i class="fas fa-arrow-left"></i>
+                </button>
+                <h2 id="battle-mode">БОЙ С БОТОМ</h2>
+                <div class="battle-timer">
+                    <i class="fas fa-clock"></i>
+                    <span id="round-timer">10</span>
+                </div>
+            </div>
+            <div class="battle-content">
+                <div class="players-container">
+                    <div class="player-card you">
+                        <div class="player-avatar" id="player1-avatar">👤</div>
+                        <div class="player-name" id="player1-name">Вы</div>
+                        <div class="player-choice" id="player1-choice">❓</div>
+                    </div>
+                    <div class="vs-container">
+                        <div class="vs-text">VS</div>
+                    </div>
+                    <div class="player-card enemy">
+                        <div class="player-avatar" id="player2-avatar">🤖</div>
+                        <div class="player-name" id="player2-name">Бот</div>
+                        <div class="player-choice" id="player2-choice">❓</div>
+                    </div>
+                </div>
+                <div class="battle-log" id="battle-log">
+                    <div class="log-entry">Выберите ваш ход!</div>
+                </div>
+                <div class="choices-container">
+                    <button class="choice-btn rock-btn" onclick="makeChoice('rock')">
+                        <div class="choice-skin" id="rock-skin">✊</div>
+                        <div class="choice-name">КАМЕНЬ</div>
+                    </button>
+                    <button class="choice-btn paper-btn" onclick="makeChoice('paper')">
+                        <div class="choice-skin" id="paper-skin">✋</div>
+                        <div class="choice-name">БУМАГА</div>
+                    </button>
+                    <button class="choice-btn scissors-btn" onclick="makeChoice('scissors')">
+                        <div class="choice-skin" id="scissors-skin">✌️</div>
+                        <div class="choice-name">НОЖНИЦЫ</div>
+                    </button>
+                </div>
+                <div class="battle-controls">
+                    <button class="control-btn hint-btn" onclick="showHint()">
+                        <i class="fas fa-lightbulb"></i> ПОДСКАЗКА
+                    </button>
+                    <button class="control-btn surrender-btn" onclick="surrender()">
+                        <i class="fas fa-flag"></i> СДАЮСЬ
+                    </button>
+                </div>
+            </div>
+        `;
+        body.appendChild(battleScreen);
+    }
+    
+    // Экран результата
+    let resultScreen = document.getElementById('result-screen');
+    if (!resultScreen) {
+        resultScreen = document.createElement('div');
+        resultScreen.id = 'result-screen';
+        resultScreen.className = 'screen';
+        resultScreen.innerHTML = `
+            <div class="result-content">
+                <div class="result-title" id="result-title">ПОБЕДА!</div>
+                <div class="result-icon" id="result-icon">🏆</div>
+                <div class="result-details">
+                    <div class="result-message" id="result-message">Вы обыграли бота!</div>
+                    <div class="result-reward">
+                        <i class="fas fa-gem"></i>
+                        <span id="reward-amount">+5 алмазов</span>
+                    </div>
+                </div>
+                <div class="result-buttons">
+                    <button class="result-btn play-again" onclick="playAgain()">
+                        <i class="fas fa-redo"></i> ИГРАТЬ СНОВА
+                    </button>
+                    <button class="result-btn menu" onclick="showScreen('main-menu')">
+                        <i class="fas fa-home"></i> В МЕНЮ
+                    </button>
+                </div>
+            </div>
+        `;
+        body.appendChild(resultScreen);
     }
 }
 
-// Генерация реферального кода
-function generateReferalCode() {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let code = '';
-    for (let i = 0; i < 8; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-    }
-    return code;
-}
-
-// Обновление даты последнего входа
-function updateLastLogin() {
-    const now = new Date();
-    userData.lastLogin = now.toISOString();
-    
-    // Проверка на стрик дней
-    const lastDate = new Date(userData.lastStreakDate || 0);
-    const isConsecutiveDay = (
-        now.getDate() === lastDate.getDate() + 1 &&
-        now.getMonth() === lastDate.getMonth() &&
-        now.getFullYear() === lastDate.getFullYear()
-    ) || (
-        // Если вчера был последний день месяца
-        now.getDate() === 1 &&
-        lastDate.getDate() === new Date(lastDate.getFullYear(), lastDate.getMonth() + 1, 0).getDate()
-    );
-    
-    if (isConsecutiveDay) {
-        userData.streakDays++;
-    } else if (now.getDate() !== lastDate.getDate() || now.getMonth() !== lastDate.getMonth()) {
-        userData.streakDays = 1;
-    }
-    
-    userData.lastStreakDate = now.toISOString();
-    saveUserData();
-}
-
-// Сохранение данных пользователя
-function saveUserData() {
-    localStorage.setItem(`pwr_user_${userData.id}`, JSON.stringify(userData));
-}
-
-// Загрузка игры
+// Функция загрузки
 function startLoading() {
     const progressBar = document.querySelector('.progress');
     if (progressBar) {
@@ -159,305 +289,245 @@ function startLoading() {
         const interval = setInterval(() => {
             if (width >= 100) {
                 clearInterval(interval);
-                
-                // Загружаем данные
-                updateUserUI();
-                loadSkins();
-                loadTasks();
-                
-                // Показываем главное меню через 0.5 секунды
-                setTimeout(() => {
-                    showScreen('main-menu');
-                }, 500);
                 return;
+            if (loadingScreen) {
+                loadingScreen.classList.add('hidden');
+            }
+            
+            if (mainMenu) {
+                mainMenu.classList.remove('hidden');
             }
             width += 2;
             progressBar.style.width = width + '%';
-        }, 20);
+        }, 30);
+            
+            // Анимация прогресс-бара
+            const progressBar = document.querySelector('.progress');
+            if (progressBar) {
+                progressBar.style.width = '100%';
+            }
+            
+            console.log('Игра успешно загружена!');
+        }, 1500);
+        
+    } catch (error) {
+        console.error('Ошибка инициализации:', error);
+        // В случае ошибки всё равно показываем меню
+        setTimeout(() => {
+            document.getElementById('loading-screen').classList.add('hidden');
+            document.getElementById('main-menu').classList.remove('hidden');
+        }, 1000);
     }
 }
 
-// Показать экран
-function showScreen(screenId) {
-    // Скрыть все экраны
-    document.querySelectorAll('.screen').forEach(screen => {
+// Скрыть все экраны
+function hideAllScreens() {
+    const allScreens = document.querySelectorAll('.screen');
+    allScreens.forEach(screen => {
         screen.classList.remove('active');
     });
+}
+});
+
+// Показать экран (адаптивная версия)
+// Функции для работы с UI
+function showScreen(screenId) {
+    console.log('Переход на экран:', screenId);
     
-    // Показать нужный экран
-    const targetScreen = document.getElementById(`${screenId}-screen`);
-    if (targetScreen) {
-        targetScreen.classList.add('active');
+    hideAllScreens();
+    // Скрываем все экраны
+    document.querySelectorAll('.screen').forEach(screen => {
+        screen.classList.add('hidden');
+    });
+
+    // Ищем экран по ID
+    let screen = document.getElementById(screenId + '-screen');
+    if (!screen) {
+        // Пробуем без суффикса
+        screen = document.getElementById(screenId);
+    }
+    // Показываем нужный экран
+    const targetScreen = document.getElementById(screenId + '-screen') || 
+                        document.getElementById(screenId);
+
+    if (screen) {
+        screen.classList.add('active');
         currentScreen = screenId;
-        
-        // Очистить анимации боя если перешли в другой экран
-        if (screenId !== 'battle') {
-            stopWaitingAnimation();
-        }
+    } else {
+        console.error('Экран не найден:', screenId);
+        // Создаем экран динамически
+        createScreen(screenId);
+        // Пробуем снова
+        setTimeout(() => showScreen(screenId), 100);
+    if (targetScreen) {
+        targetScreen.classList.remove('hidden');
     }
+}
+
+// Создать экран динамически
+function createScreen(screenId) {
+    console.log('Создаем экран:', screenId);
     
-    // Специальные действия для экранов
-    switch (screenId) {
-        case 'main-menu':
-            updateUserUI();
-            break;
-        case 'battle':
-            startWaitingAnimation();
-            startBattleTimer();
-            break;
-        case 'difficulty':
-            loadDifficultyOptions();
-            break;
-        case 'shop':
-            loadShopItems();
-            break;
-        case 'backpack':
-            loadCollection();
-            break;
-        case 'tasks':
-            loadTasks();
-            break;
-        case 'settings':
-            loadSettings();
-            break;
-    }
+    const screen = document.createElement('div');
+    screen.id = screenId + '-screen';
+    screen.className = 'screen';
+    screen.innerHTML = `
+        <div class="screen-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>${screenId.toUpperCase()}</h2>
+        </div>
+        <div style="padding: 20px; text-align: center;">
+            <p>Экран "${screenId}" в разработке</p>
+            <button onclick="showScreen('main-menu')" style="
+                background: #ff9f43;
+                color: white;
+                border: none;
+                padding: 10px 20px;
+                border-radius: 10px;
+                margin-top: 20px;
+                cursor: pointer;
+            ">Вернуться в меню</button>
+        </div>
+    `;
+    document.body.appendChild(screen);
 }
 
 // Обновить UI пользователя
 function updateUserUI() {
     if (!userData) return;
-    
-    // Обновить имя
-    const usernameElements = document.querySelectorAll('#username');
-    usernameElements.forEach(el => {
-        el.textContent = userData.firstName || userData.username;
-    });
-    
-    // Обновить алмазы
-    const diamondElements = document.querySelectorAll('#diamond-count, #shop-balance');
-    diamondElements.forEach(el => {
-        el.textContent = userData.diamonds || 0;
-    });
-    
-    // Обновить статистику
-    updateStats();
-    
-    // Обновить реферальную информацию
-    updateReferalInfo();
-}
 
-// Обновить статистику
-function updateStats() {
-    if (!userData) return;
+    const usernameElement = document.getElementById('username');
+    const diamondElement = document.getElementById('diamond-count');
     
-    const statWins = document.getElementById('stat-wins');
-    const statLosses = document.getElementById('stat-losses');
-    const statStreak = document.getElementById('stat-streak');
-    const totalWins = document.getElementById('total-wins');
-    const totalLosses = document.getElementById('total-losses');
-    
-    if (statWins) statWins.textContent = userData.wins || 0;
-    if (statLosses) statLosses.textContent = userData.losses || 0;
-    if (statStreak) statStreak.textContent = userData.stats?.winStreak || 0;
-    if (totalWins) totalWins.textContent = userData.wins || 0;
-    if (totalLosses) totalLosses.textContent = userData.losses || 0;
-}
-
-// Загрузка опций сложности
-function loadDifficultyOptions() {
-    const difficulties = [
-        { id: 'easy', name: 'НОВИЧОК', emoji: '😊', reward: 3, desc: 'Идеально для начала' },
-        { id: 'medium', name: 'ОПЫТНЫЙ', emoji: '😎', reward: 5, desc: 'Сбалансированная игра' },
-        { id: 'hard', name: 'ЭКСПЕРТ', emoji: '🤖', reward: 10, desc: 'Для настоящих чемпионов' }
-    ];
-    
-    const container = document.querySelector('.difficulty-options');
-    if (container) {
-        container.innerHTML = difficulties.map(diff => `
-            <button class="difficulty-btn ${diff.id}" onclick="startBotGame('${diff.id}')">
-                <div class="difficulty-icon">${diff.emoji}</div>
-                <div class="difficulty-info">
-                    <h3>${diff.name}</h3>
-                    <p>${diff.desc}</p>
-                    <div class="reward-info">Награда: +${diff.reward} алмазов</div>
-                </div>
-            </button>
-        `).join('');
-    }
+    if (usernameElement) usernameElement.textContent = userData.username;
+    if (diamondElement) diamondElement.textContent = userData.diamonds;
 }
 
 // Начать игру с ботом
+function startGame(type) {
+    if (type === 'bot') {
+        showScreen('difficulty');
+    // Если показываем магазин или коллекцию, обновляем
+    if (screenId === 'shop' || screenId === 'backpack') {
+        updateShop();
+    }
+}
+
+// Начать игру с определенной сложностью
 function startBotGame(difficulty) {
-    selectedDifficulty = difficulty;
+    console.log('Сложность:', difficulty);
     
-    // Создаем бота
-    const botTypes = {
-        easy: ['Новичок Бот', 'Ученик', 'Начинающий'],
-        medium: ['Опытный Бот', 'Ветеран', 'Мастер'],
-        hard: ['Легендарный Бот', 'Чемпион', 'Гроссмейстер']
+    const botNames = {
+        easy: ['Новичок', 'Ученик', 'Начинающий'],
+        medium: ['Опытный', 'Ветеран', 'Мастер'],
+        hard: ['Эксперт', 'Чемпион', 'Босс']
     };
     
-    const names = botTypes[difficulty];
+    const names = botNames[difficulty];
     const botName = names[Math.floor(Math.random() * names.length)];
     
     currentGame = {
-        id: Date.now(),
-        player1: userData.id,
-        player2: `bot_${Date.now()}`,
+        id: 'game_' + Date.now(),
         bot: {
             name: botName,
-            difficulty: difficulty,
-            avatar: '🤖'
+            difficulty: difficulty
         },
-        status: 'waiting',
-        playerChoice: null,
-        botChoice: null,
-        result: null,
-        startedAt: Date.now()
+        status: 'playing'
     };
     
-    // Обновляем UI для боя
-    document.getElementById('battle-mode').textContent = 'БОЙ С БОТОМ';
-    document.getElementById('player2-name').textContent = botName;
-    document.getElementById('player2-avatar').textContent = '🤖';
-    document.getElementById('player2-difficulty').textContent = 
-        difficulty === 'easy' ? 'Новичок' : 
-        difficulty === 'medium' ? 'Средний' : 'Эксперт';
+    const battleTitle = document.getElementById('battle-mode');
+    const enemyName = document.getElementById('player2-name');
     
-    // Сбрасываем выбор
-    resetChoices();
+    if (battleTitle) battleTitle.textContent = 'БОЙ С БОТОМ';
+    if (enemyName) enemyName.textContent = botName;
     
-    // Очищаем лог
-    const log = document.getElementById('battle-log');
-    if (log) {
-        log.innerHTML = '<div class="log-entry">Начинаем бой с ботом! Сделайте ваш ход.</div>';
-    }
+    clearBattleLog();
+    addLogEntry('Начинаем бой с ботом! Сделайте ваш ход.');
     
-    // Показываем экран боя
     showScreen('battle');
+    startBattleTimer();
 }
 
-// Начать анимацию ожидания
-function startWaitingAnimation() {
-    if (battleAnimationInterval) return;
-    
-    waitingAnimationActive = true;
-    
-    const player1Animation = document.getElementById('player1-animation');
-    const player2Animation = document.getElementById('player2-animation');
-    
-    if (player1Animation && player2Animation) {
-        player1Animation.style.display = 'block';
-        player2Animation.style.display = 'block';
-    }
-    
-    // Скрываем выбор игроков
-    const player1Choice = document.getElementById('player1-choice');
-    const player2Choice = document.getElementById('player2-choice');
-    
-    if (player1Choice) player1Choice.style.display = 'none';
-    if (player2Choice) player2Choice.style.display = 'none';
-    
-    // Анимация тряски
-    battleAnimationInterval = setInterval(() => {
-        if (!waitingAnimationActive) return;
-        
-        // Можно добавить класс с анимацией, если нужна CSS-анимация
-        if (player1Animation) {
-            player1Animation.style.transform = `scaleX(-1) translateX(${Math.random() * 4 - 2}px) translateY(${Math.random() * 4 - 2}px)`;
-        }
-        if (player2Animation) {
-            player2Animation.style.transform = `translateX(${Math.random() * 4 - 2}px) translateY(${Math.random() * 4 - 2}px)`;
-        }
-    }, 50);
-}
-
-// Остановить анимацию ожидания
-function stopWaitingAnimation() {
-    waitingAnimationActive = false;
-    
-    if (battleAnimationInterval) {
-        clearInterval(battleAnimationInterval);
-        battleAnimationInterval = null;
-    }
-    
-    const player1Animation = document.getElementById('player1-animation');
-    const player2Animation = document.getElementById('player2-animation');
-    
-    if (player1Animation) player1Animation.style.display = 'none';
-    if (player2Animation) player2Animation.style.display = 'none';
-}
-
-// Сделать выбор
+// Сделать ход
 function makeChoice(choice) {
-    if (!currentGame || !waitingAnimationActive) return;
+    if (!currentGame) return;
     
-    // Останавливаем анимацию ожидания
-    stopWaitingAnimation();
+    console.log('Игрок выбрал:', choice);
     
-    // Обновляем выбор игрока
-    currentGame.playerChoice = choice;
-    
-    const player1Choice = document.getElementById('player1-choice');
-    if (player1Choice) {
-        player1Choice.textContent = getSkinEmoji('choice', choice);
-        player1Choice.style.display = 'block';
+    const playerChoice = document.getElementById('player1-choice');
+    if (playerChoice) {
+        playerChoice.textContent = getChoiceEmoji(choice);
     }
     
-    // Добавляем в лог
     addLogEntry(`Вы выбрали: ${getChoiceName(choice)}`);
-    
-    // Бот делает выбор через случайную задержку
-    const delay = 500 + Math.random() * 1500; // От 0.5 до 2 секунд
+function updateUI() {
+    // Обновляем алмазы
+    const diamondElements = document.querySelectorAll('#diamond-count, #shop-balance');
+    diamondElements.forEach(el => {
+        if (el) el.textContent = gameState.diamonds;
+    });
+
     setTimeout(() => {
         botMakeChoice(choice);
-    }, delay);
+    }, 1000);
+    // Обновляем статистику
+    document.getElementById('stat-wins').textContent = gameState.wins;
+    document.getElementById('stat-losses').textContent = gameState.losses;
+    document.getElementById('stat-streak').textContent = gameState.streak;
 }
 
-// Бот делает выбор
+// Бот делает ход
 function botMakeChoice(playerChoice) {
     if (!currentGame) return;
     
-    const difficulty = currentGame.bot.difficulty;
-    let botChoice;
-    
-    // Логика бота в зависимости от сложности
     const choices = ['rock', 'paper', 'scissors'];
+    let botChoice;
+    const difficulty = currentGame.bot.difficulty;
     const random = Math.random();
     
     if (difficulty === 'easy') {
-        // Простой бот - случайный выбор
         botChoice = choices[Math.floor(Math.random() * 3)];
     } else if (difficulty === 'medium') {
-        // Средний бот - иногда выбирает выигрышный ход
         if (random < 0.4) {
-            const winningMoves = { rock: 'paper', paper: 'scissors', scissors: 'rock' };
+            const winningMoves = {
+                rock: 'paper',
+                paper: 'scissors',
+                scissors: 'rock'
+            };
             botChoice = winningMoves[playerChoice];
         } else {
             botChoice = choices[Math.floor(Math.random() * 3)];
+function loadGameState() {
+    try {
+        const saved = localStorage.getItem('paperWinRockState');
+        if (saved) {
+            const parsed = JSON.parse(saved);
+            gameState = { ...gameState, ...parsed };
         }
     } else {
-        // Сложный бот - часто выбирает выигрышный ход
         if (random < 0.7) {
-            const winningMoves = { rock: 'paper', paper: 'scissors', scissors: 'rock' };
+            const winningMoves = {
+                rock: 'paper',
+                paper: 'scissors',
+                scissors: 'rock'
+            };
             botChoice = winningMoves[playerChoice];
         } else {
             botChoice = choices[Math.floor(Math.random() * 3)];
         }
     }
     
-    currentGame.botChoice = botChoice;
-    
-    // Обновляем выбор бота
-    const player2Choice = document.getElementById('player2-choice');
-    if (player2Choice) {
-        player2Choice.textContent = getChoiceEmoji(botChoice);
-        player2Choice.style.display = 'block';
+    const botChoiceElement = document.getElementById('player2-choice');
+    if (botChoiceElement) {
+        botChoiceElement.textContent = getChoiceEmoji(botChoice);
+    } catch (error) {
+        console.error('Ошибка загрузки состояния:', error);
     }
     
     addLogEntry(`Бот выбрал: ${getChoiceName(botChoice)}`);
     
-    // Определяем победителя через 1 секунду
     setTimeout(() => {
         determineWinner(playerChoice, botChoice);
     }, 1000);
@@ -465,72 +535,59 @@ function botMakeChoice(playerChoice) {
 
 // Определить победителя
 function determineWinner(playerChoice, botChoice) {
-    if (!currentGame) return;
-    
-    let result;
-    let message;
-    let reward = 0;
-    
     if (playerChoice === botChoice) {
-        result = 'draw';
-        message = 'Ничья!';
-        reward = 1;
-        userData.draws = (userData.draws || 0) + 1;
+        showResult('draw', playerChoice, botChoice);
+        return;
+    }
+    
+    const rules = {
+        rock: 'scissors',
+        scissors: 'paper',
+        paper: 'rock'
+    };
+    
+    if (rules[playerChoice] === botChoice) {
+        showResult('win', playerChoice, botChoice);
+        updateUserStats(true);
     } else {
-        const rules = {
-            rock: 'scissors',
-            scissors: 'paper',
-            paper: 'rock'
-        };
-        
-        if (rules[playerChoice] === botChoice) {
-            result = 'win';
-            message = 'ПОБЕДА!';
-            reward = selectedDifficulty === 'easy' ? 3 : 
-                     selectedDifficulty === 'medium' ? 5 : 10;
-            userData.wins = (userData.wins || 0) + 1;
-            userData.stats.winStreak = (userData.stats.winStreak || 0) + 1;
-            
-            if (userData.stats.winStreak > (userData.stats.bestWinStreak || 0)) {
-                userData.stats.bestWinStreak = userData.stats.winStreak;
-            }
-        } else {
-            result = 'lose';
-            message = 'ПОРАЖЕНИЕ';
-            reward = 1;
-            userData.losses = (userData.losses || 0) + 1;
-            userData.stats.winStreak = 0;
-        }
+        showResult('lose', playerChoice, botChoice);
+        updateUserStats(false);
+function saveGameState() {
+    try {
+        localStorage.setItem('paperWinRockState', JSON.stringify(gameState));
+    } catch (error) {
+        console.error('Ошибка сохранения состояния:', error);
     }
-    
-    userData.totalGames = (userData.totalGames || 0) + 1;
-    userData.diamonds = (userData.diamonds || 0) + reward;
-    
-    // Сохраняем любимый выбор
-    if (!userData.stats.favoriteChoice) {
-        userData.stats.favoriteChoice = playerChoice;
-    }
-    
-    // Обновляем статистику
-    currentGame.result = result;
-    currentGame.status = 'finished';
-    
-    // Обновляем UI результата
-    updateResultScreen(result, playerChoice, botChoice, reward, message);
-    
-    // Сохраняем данные
-    saveUserData();
-    updateUserUI();
-    
-    // Показываем экран результата через 2 секунды
-    setTimeout(() => {
-        showScreen('result');
-        stopBattleTimer();
-    }, 2000);
 }
 
-// Обновить экран результата
-function updateResultScreen(result, playerChoice, botChoice, reward, message) {
+// Показать результат
+function showResult(result, playerChoice, botChoice) {
+    stopBattleTimer();
+    
+    let title, icon, message, reward;
+    
+    switch (result) {
+        case 'win':
+            title = 'ПОБЕДА!';
+            icon = '🏆';
+            message = 'Вы обыграли бота!';
+            reward = currentGame.bot.difficulty === 'easy' ? 3 : 
+                     currentGame.bot.difficulty === 'medium' ? 5 : 10;
+            break;
+        case 'lose':
+            title = 'ПОРАЖЕНИЕ';
+            icon = '💔';
+            message = 'Бот оказался сильнее.';
+            reward = 1;
+            break;
+        case 'draw':
+            title = 'НИЧЬЯ!';
+            icon = '🤝';
+            message = 'Ничья! Попробуйте снова.';
+            reward = 2;
+            break;
+    }
+    
     const resultTitle = document.getElementById('result-title');
     const resultIcon = document.getElementById('result-icon');
     const resultMessage = document.getElementById('result-message');
@@ -538,48 +595,45 @@ function updateResultScreen(result, playerChoice, botChoice, reward, message) {
     const yourChoice = document.getElementById('your-choice');
     const enemyChoice = document.getElementById('enemy-choice');
     
-    if (resultTitle) resultTitle.textContent = message;
+    if (resultTitle) resultTitle.textContent = title;
+    if (resultIcon) resultIcon.textContent = icon;
+    if (resultMessage) resultMessage.textContent = message;
+    if (rewardAmount) rewardAmount.textContent = `+${reward} алмазов`;
     
-    let icon = '';
-    switch (result) {
-        case 'win': icon = '🏆'; break;
-        case 'lose': icon = '💔'; break;
-        case 'draw': icon = '🤝'; break;
+    if (reward) {
+        userData.diamonds += reward;
+        updateUserUI();
     }
     
-    if (resultIcon) resultIcon.textContent = icon;
-    if (resultMessage) resultMessage.textContent = getResultMessage(result);
-    if (rewardAmount) rewardAmount.textContent = `+${reward} алмазов`;
-    if (yourChoice) yourChoice.textContent = `${getChoiceEmoji(playerChoice)} ${getChoiceName(playerChoice)}`;
-    if (enemyChoice) enemyChoice.textContent = `${getChoiceEmoji(botChoice)} ${getChoiceName(botChoice)}`;
+    setTimeout(() => {
+        showScreen('result');
+    }, 1000);
 }
+// Экспортируем для использования в других файлах
+window.showScreen = showScreen;
+window.gameState = gameState;
+window.saveGameState = saveGameState;
+window.updateUI = updateUI;
 
-// Получить сообщение результата
-function getResultMessage(result) {
-    const messages = {
-        win: [
-            'Отличная победа!',
-            'Вы мастер этой игры!',
-            'Превосходная стратегия!',
-            'Бот не ожидал такого хода!'
-        ],
-        lose: [
-            'В следующий раз повезёт!',
-            'Бот сегодня в ударе!',
-            'Попробуйте другую стратегию!',
-            'Удача на вашей стороне в следующей игре!'
-        ],
-        draw: [
-            'Равные соперники!',
-            'Интересная ничья!',
-            'Оба мыслили одинаково!',
-            'Сыграйте ещё раз!'
-        ]
-    };
-    
-    const list = messages[result] || ['Игра завершена!'];
-    return list[Math.floor(Math.random() * list.length)];
+// Обновить статистику пользователя
+function updateUserStats(isWin) {
+    if (isWin) {
+        userData.wins += 1;
+        userData.stats.winStreak += 1;
+        if (userData.stats.winStreak > userData.stats.bestWinStreak) {
+            userData.stats.bestWinStreak = userData.stats.winStreak;
+        }
+    } else {
+        userData.losses += 1;
+        userData.stats.winStreak = 0;
+// Простые функции для кнопок (заглушки)
+window.startGame = function(mode) {
+    if (mode === 'bot') {
+        showScreen('difficulty');
+    }
+    userData.stats.totalGames += 1;
 }
+};
 
 // Вспомогательные функции
 function getChoiceEmoji(choice) {
@@ -600,44 +654,26 @@ function getChoiceName(choice) {
     return names[choice] || 'Неизвестно';
 }
 
-function getSkinEmoji(type, skinId = 'default') {
-    const skins = {
-        default: { rock: '✊', paper: '✋', scissors: '✌️' },
-        fire: { rock: '🔥', paper: '🔥', scissors: '🔥' },
-        ice: { rock: '❄️', paper: '❄️', scissors: '❄️' },
-        thunder: { rock: '⚡', paper: '⚡', scissors: '⚡' }
-    };
-    
-    return skins[skinId]?.[type] || skins.default[type];
-}
-
-// Сбросить выбор
-function resetChoices() {
-    const player1Choice = document.getElementById('player1-choice');
-    const player2Choice = document.getElementById('player2-choice');
-    
-    if (player1Choice) {
-        player1Choice.textContent = '❓';
-        player1Choice.style.display = 'none';
-    }
-    if (player2Choice) {
-        player2Choice.textContent = '❓';
-        player2Choice.style.display = 'none';
-    }
-}
-
 // Таймер боя
 function startBattleTimer() {
     let time = 10;
     const timerElement = document.getElementById('round-timer');
-    
+window.startBotGame = function(difficulty) {
+    console.log('Начинаем игру со сложностью:', difficulty);
+    showScreen('battle');
+
     if (gameTimer) clearInterval(gameTimer);
-    
+    // Обновляем информацию о боте
+    document.getElementById('battle-mode').textContent = 'БОЙ С БОТОМ';
+    document.getElementById('player2-name').textContent = 'Бот';
+    document.getElementById('player2-difficulty').textContent = 
+        difficulty === 'easy' ? 'Новичок' : 
+        difficulty === 'medium' ? 'Средний' : 'Эксперт';
+
     gameTimer = setInterval(() => {
         time--;
         if (timerElement) {
             timerElement.textContent = time;
-            
             if (time <= 5) {
                 timerElement.style.color = '#ff6b6b';
             } else {
@@ -647,14 +683,10 @@ function startBattleTimer() {
         
         if (time <= 0) {
             stopBattleTimer();
-            
-            // Автоматический выбор при тайм-ауте
-            if (waitingAnimationActive) {
-                const choices = ['rock', 'paper', 'scissors'];
-                const autoChoice = choices[Math.floor(Math.random() * 3)];
-                makeChoice(autoChoice);
-                addLogEntry('Время вышло! Сделан случайный выбор.');
-            }
+            const choices = ['rock', 'paper', 'scissors'];
+            const autoChoice = choices[Math.floor(Math.random() * 3)];
+            makeChoice(autoChoice);
+            addLogEntry('Время вышло! Сделан случайный выбор.');
         }
     }, 1000);
 }
@@ -666,7 +698,14 @@ function stopBattleTimer() {
     }
 }
 
-// Лог боя
+// Боевой лог
+function clearBattleLog() {
+    const log = document.getElementById('battle-log');
+    if (log) {
+        log.innerHTML = '';
+    }
+}
+
 function addLogEntry(text) {
     const log = document.getElementById('battle-log');
     if (log) {
@@ -678,487 +717,76 @@ function addLogEntry(text) {
     }
 }
 
-// Поиск PvP
-function startPvPSearch() {
-    showScreen('pvp-search');
-    
-    let time = 15;
-    const timerElement = document.getElementById('search-timer');
-    
-    const searchTimer = setInterval(() => {
-        time--;
-        if (timerElement) {
-            timerElement.textContent = time;
-        }
-        
-        if (time <= 0) {
-            clearInterval(searchTimer);
-            showNotification('Противник не найден. Попробуйте снова.');
-            showScreen('main-menu');
-        }
-    }, 1000);
-    
-    // Симуляция поиска 3 секунды
-    setTimeout(() => {
-        clearInterval(searchTimer);
-        showNotification('Противник найден! Переходим к бою...');
-        setTimeout(() => startBotGame('medium'), 1000);
-    }, 3000);
+// Другие функции
+function showHint() {
+    alert('Камень бьёт ножницы, ножницы бьют бумагу, бумага бьёт камень!');
 }
+
+function startPvPSearch() {
+    alert('PvP режим в разработке. Играйте с ботом!');
+    showScreen('main-menu');
+}
+    // Начинаем таймер раунда
+    startRoundTimer();
+};
 
 function cancelSearch() {
     showScreen('main-menu');
 }
 
-// Загрузка скинов
-function loadSkins() {
-    // Обновляем текущие скины
-    updateCurrentSkins();
-}
-
-function updateCurrentSkins() {
-    if (!userData) return;
-    
-    const rockSkin = document.getElementById('current-rock');
-    const paperSkin = document.getElementById('current-paper');
-    const scissorsSkin = document.getElementById('current-scissors');
-    
-    if (rockSkin) rockSkin.textContent = getSkinEmoji('rock', userData.skinRock);
-    if (paperSkin) paperSkin.textContent = getSkinEmoji('paper', userData.skinPaper);
-    if (scissorsSkin) scissorsSkin.textContent = getSkinEmoji('scissors', userData.skinScissors);
-    
-    // Обновляем выбор в бою
-    const rockChoice = document.getElementById('rock-skin');
-    const paperChoice = document.getElementById('paper-skin');
-    const scissorsChoice = document.getElementById('scissors-skin');
-    
-    if (rockChoice) rockChoice.textContent = getSkinEmoji('rock', userData.skinRock);
-    if (paperChoice) paperChoice.textContent = getSkinEmoji('paper', userData.skinPaper);
-    if (scissorsChoice) scissorsChoice.textContent = getSkinEmoji('scissors', userData.skinScissors);
-}
-
-// Магазин
-function loadShopItems() {
-    const skins = [
-        { id: 'default', name: 'Обычный', price: 0, type: 'all', emoji: '🎮' },
-        { id: 'fire', name: 'Огненный', price: 100, type: 'all', emoji: '🔥' },
-        { id: 'ice', name: 'Ледяной', price: 100, type: 'all', emoji: '❄️' },
-        { id: 'thunder', name: 'Громовой', price: 100, type: 'all', emoji: '⚡' },
-        { id: 'gold', name: 'Золотой', price: 500, type: 'all', emoji: '🥇' },
-        { id: 'diamond', name: 'Алмазный', price: 1000, type: 'all', emoji: '💎' }
-    ];
-    
-    const container = document.getElementById('shop-items');
-    if (!container) return;
-    
-    container.innerHTML = skins.map(skin => {
-        const isOwned = userData.ownedSkins?.includes(skin.id) || skin.price === 0;
-        const isEquipped = 
-            userData.skinRock === skin.id || 
-            userData.skinPaper === skin.id || 
-            userData.skinScissors === skin.id;
-        
-        return `
-            <div class="shop-item ${isOwned ? 'owned' : ''} ${isEquipped ? 'equipped' : ''}">
-                <div class="shop-item-icon">${skin.emoji}</div>
-                <div class="shop-item-name">${skin.name}</div>
-                <div class="shop-item-price">
-                    <i class="fas fa-gem"></i> ${skin.price}
-                </div>
-                ${isOwned ? 
-                    `<button class="equip-btn" onclick="equipSkin('${skin.id}')" ${isEquipped ? 'disabled' : ''}>
-                        ${isEquipped ? 'Надето' : 'Надеть'}
-                    </button>` :
-                    `<button class="buy-btn" onclick="buySkin('${skin.id}', ${skin.price})" ${(userData.diamonds || 0) < skin.price ? 'disabled' : ''}>
-                        Купить
-                    </button>`
-                }
-            </div>
-        `;
-    }).join('');
-}
-
-function buySkin(skinId, price) {
-    if ((userData.diamonds || 0) < price) {
-        showNotification('Недостаточно алмазов!');
-        return;
-    }
-    
-    userData.diamonds -= price;
-    if (!userData.ownedSkins) userData.ownedSkins = [];
-    if (!userData.ownedSkins.includes(skinId)) {
-        userData.ownedSkins.push(skinId);
-    }
-    
-    // Автонадевание при покупке
-    equipSkin(skinId);
-    
-    saveUserData();
-    updateUserUI();
-    loadShopItems();
-    updateCurrentSkins();
-    
-    showNotification(`Скин "${skinId}" куплен! -${price} алмазов`);
-}
-
-function equipSkin(skinId) {
-    userData.skinRock = skinId;
-    userData.skinPaper = skinId;
-    userData.skinScissors = skinId;
-    
-    saveUserData();
-    updateCurrentSkins();
-    loadShopItems();
-    
-    showNotification('Скин надет на все варианты!');
-}
-
-// Коллекция
-function loadCollection() {
-    updateCurrentSkins();
-    
-    const skins = [
-        { id: 'default', name: 'Обычный', type: 'all', emoji: '🎮' },
-        { id: 'fire', name: 'Огненный', type: 'all', emoji: '🔥' },
-        { id: 'ice', name: 'Ледяной', type: 'all', emoji: '❄️' }
-    ];
-    
-    const container = document.getElementById('collection-items');
-    if (!container) return;
-    
-    const ownedSkins = skins.filter(skin => userData.ownedSkins?.includes(skin.id));
-    
-    container.innerHTML = ownedSkins.map(skin => {
-        const isEquipped = userData.skinRock === skin.id;
-        
-        return `
-            <div class="collection-item ${isEquipped ? 'equipped' : ''}">
-                <div class="collection-icon">${skin.emoji}</div>
-                <div class="collection-name">${skin.name}</div>
-                <button class="equip-btn-small" onclick="equipSkin('${skin.id}')" ${isEquipped ? 'disabled' : ''}>
-                    ${isEquipped ? 'Надето' : 'Надеть'}
-                </button>
-            </div>
-        `;
-    }).join('');
-}
-
-// Обновление ежедневных заданий
-function updateDailyTasks() {
-    const now = new Date();
-    const lastUpdate = new Date(userData.dailyTasks?.lastUpdate || 0);
-    const mskOffset = 3 * 60 * 60 * 1000; // MSK is UTC+3
-    const nowInMSK = new Date(now.getTime() + mskOffset);
-    
-    // Проверяем, наступил ли новый день по московскому времени
-    const isNewDay = nowInMSK.getDate() !== lastUpdate.getDate() || 
-                    nowInMSK.getMonth() !== lastUpdate.getMonth() || 
-                    nowInMSK.getFullYear() !== lastUpdate.getFullYear();
-    
-    if (isNewDay) {
-        resetDailyTasks();
-    }
-}
-
-function resetDailyTasks() {
-    const dailyTasks = [
-        { id: 'daily_win_3', name: 'Выиграть 3 игры', reward: 50, progress: 0, target: 3, type: 'wins', completed: false },
-        { id: 'daily_play_5', name: 'Сыграть 5 игр', reward: 30, progress: 0, target: 5, type: 'plays', completed: false },
-        { id: 'daily_streak_2', name: 'Победная серия 2', reward: 40, progress: 0, target: 2, type: 'streak', completed: false },
-        { id: 'daily_login', name: 'Зайти в игру', reward: 20, progress: 1, target: 1, type: 'login', completed: true }
-    ];
-    
-    userData.dailyTasks = {
-        tasks: dailyTasks,
-        lastUpdate: new Date().toISOString()
-    };
-    
-    // Отмечаем задание "Зайти в игру" как выполненное сразу
-    const loginTask = dailyTasks.find(t => t.id === 'daily_login');
-    if (loginTask) {
-        loginTask.completed = true;
-        userData.diamonds = (userData.diamonds || 0) + loginTask.reward;
-        showNotification(`Ежедневная награда: +${loginTask.reward} алмазов за вход!`);
-    }
-    
-    saveUserData();
-    updateUserUI();
-}
-
-// Загрузка заданий
-function loadTasks() {
-    if (!userData.dailyTasks || !userData.dailyTasks.tasks) {
-        resetDailyTasks();
-    }
-    
-    const tasks = userData.dailyTasks.tasks || [];
-    const completedTasks = userData.completedTasks || [];
-    
-    // Фильтруем невыполненные задания
-    const activeTasks = tasks.filter(task => !task.completed && !completedTasks.includes(task.id));
-    
-    const container = document.getElementById('daily-tasks');
-    if (container) {
-        if (activeTasks.length === 0) {
-            container.innerHTML = `
-                <div class="task-item">
-                    <div class="task-header">
-                        <div class="task-title">
-                            <i class="fas fa-check-circle"></i>
-                            <span>Все задания выполнены!</span>
-                        </div>
-                    </div>
-                    <div class="task-message">
-                        Новые задания появятся завтра в 00:00 по МСК
-                    </div>
-                </div>
-            `;
-        } else {
-            container.innerHTML = activeTasks.map(task => `
-                <div class="task-item">
-                    <div class="task-header">
-                        <div class="task-title">
-                            <i class="fas fa-star"></i>
-                            <span>${task.name}</span>
-                        </div>
-                        <div class="task-reward">
-                            <i class="fas fa-gem"></i>
-                            <span>${task.reward}</span>
-                        </div>
-                    </div>
-                    <div class="task-progress">
-                        <div class="progress-text">
-                            <span>${task.progress}/${task.target}</span>
-                            <span>${Math.round((task.progress / task.target) * 100)}%</span>
-                        </div>
-                        <div class="progress-bar">
-                            <div class="progress-fill" style="width: ${(task.progress / task.target) * 100}%"></div>
-                        </div>
-                    </div>
-                    <button class="claim-btn" onclick="claimTask('${task.id}')" ${task.progress >= task.target ? '' : 'disabled'}>
-                        ${task.progress >= task.target ? 'Получить награду' : 'Не выполнено'}
-                    </button>
-                </div>
-            `).join('');
-        }
-    }
-    
-    // Обновляем прогресс заданий
-    updateTaskProgress();
-}
-
-function updateTaskProgress() {
-    if (!userData.dailyTasks?.tasks) return;
-    
-    const tasks = userData.dailyTasks.tasks;
-    let updated = false;
-    
-    tasks.forEach(task => {
-        if (task.completed) return;
-        
-        switch (task.type) {
-            case 'wins':
-                task.progress = Math.min(task.target, userData.wins || 0);
-                break;
-            case 'plays':
-                task.progress = Math.min(task.target, userData.totalGames || 0);
-                break;
-            case 'streak':
-                task.progress = Math.min(task.target, userData.stats?.winStreak || 0);
-                break;
-        }
-        
-        if (task.progress >= task.target && !task.completed) {
-            updated = true;
-        }
-    });
-    
-    if (updated) {
-        saveUserData();
-        loadTasks();
-    }
-}
-
-function claimTask(taskId) {
-    const task = userData.dailyTasks.tasks.find(t => t.id === taskId);
-    if (!task || task.completed) return;
-    
-    if (task.progress >= task.target) {
-        task.completed = true;
-        if (!userData.completedTasks) userData.completedTasks = [];
-        userData.completedTasks.push(taskId);
-        userData.diamonds = (userData.diamonds || 0) + task.reward;
-        
-        saveUserData();
-        updateUserUI();
-        loadTasks();
-        
-        showNotification(`Задание выполнено! +${task.reward} алмазов`);
-    }
-}
-
-// Реферальная система
-function updateReferalInfo() {
-    const referalCount = document.getElementById('referal-count');
-    const referalLink = document.getElementById('referal-url');
-    
-    if (referalCount) {
-        referalCount.textContent = userData.referals?.length || 0;
-    }
-    
-    if (referalLink) {
-        // Ссылка на бота с реферальным кодом
-        referalLink.value = `https://t.me/PaperWinRock_bot?start=${userData.referalCode}`;
-    }
-    
-    // Статистика рефералов
-    const referalEarned = document.getElementById('referal-earned');
-    if (referalEarned) {
-        referalEarned.textContent = (userData.referals?.length || 0) * 50;
-    }
+function showSettings() {
+    alert('Настройки в разработке');
 }
 
 function copyReferalLink() {
-    const input = document.getElementById('referal-url');
-    if (input) {
-        input.select();
-        document.execCommand('copy');
-        showNotification('Реферальная ссылка скопирована!');
-    }
+    const link = window.location.href;
+    navigator.clipboard.writeText(link)
+        .then(() => alert('Ссылка скопирована!'))
+        .catch(() => alert('Не удалось скопировать ссылку'));
 }
+window.makeChoice = function(choice) {
+    console.log('Выбран:', choice);
+    // Здесь будет логика выбора
+    showScreen('result');
+};
 
-function shareReferalLink() {
-    const url = `https://t.me/PaperWinRock_bot?start=${userData.referalCode}`;
-    const text = `🎮 Присоединяйся к Paper Win Rock!\n\nИграй в крутую игру "Камень-Ножницы-Бумага" с ботами, скинами и заданиями!\n\nТвоя реферальная ссылка: ${url}`;
-    
-    if (window.Telegram?.WebApp) {
-        // Используем Telegram Web App для шаринга
-        Telegram.WebApp.openTelegramLink(url);
-    } else if (navigator.share) {
-        // Используем Web Share API
-        navigator.share({
-            title: 'Paper Win Rock',
-            text: text,
-            url: url
-        });
-    } else {
-        copyReferalLink();
-    }
-}
-
-// Настройки
-function loadSettings() {
-    // Загружаем текущие настройки
-    const soundEffects = document.getElementById('sound-effects');
-    const bgMusic = document.getElementById('bg-music');
-    const darkTheme = document.getElementById('dark-theme');
-    const animations = document.getElementById('animations');
-    
-    if (soundEffects) soundEffects.checked = userData.settings?.soundEffects !== false;
-    if (bgMusic) bgMusic.checked = userData.settings?.bgMusic !== false;
-    if (darkTheme) darkTheme.checked = userData.settings?.darkTheme || false;
-    if (animations) animations.checked = userData.settings?.animations !== false;
-}
-
-function saveSettings() {
-    const soundEffects = document.getElementById('sound-effects');
-    const bgMusic = document.getElementById('bg-music');
-    const darkTheme = document.getElementById('dark-theme');
-    const animations = document.getElementById('animations');
-    
-    userData.settings = {
-        soundEffects: soundEffects ? soundEffects.checked : true,
-        bgMusic: bgMusic ? bgMusic.checked : true,
-        darkTheme: darkTheme ? darkTheme.checked : false,
-        animations: animations ? animations.checked : true
-    };
-    
-    saveUserData();
-    showNotification('Настройки сохранены!');
-}
-
-// Уведомления
-function showNotification(text) {
-    const notification = document.getElementById('notification');
-    const textElement = document.getElementById('notification-text');
-    
-    if (notification && textElement) {
-        textElement.textContent = text;
-        notification.classList.remove('hidden');
-        
-        setTimeout(() => {
-            notification.classList.add('hidden');
-        }, 3000);
-    }
-}
-
-// Подсказка
-function showHint() {
-    showNotification('Камень бьёт ножницы, ножницы бьют бумагу, бумага бьёт камень!');
-}
-
-function closeHint() {
-    const hintOverlay = document.getElementById('hint-overlay');
-    if (hintOverlay) {
-        hintOverlay.classList.add('hidden');
-    }
-}
-
-// Дополнительные функции
 function playAgain() {
+window.playAgain = function() {
     showScreen('difficulty');
 }
 
 function shareResult() {
-    const text = `🎮 Я только что сыграл в Paper Win Rock! \n\nСтатистика:\n🏆 Побед: ${userData.wins || 0}\n💎 Алмазов: ${userData.diamonds || 0}\n\nПрисоединяйся: https://t.me/PaperWinRock_bot`;
-    
-    if (navigator.share) {
-        navigator.share({
-            title: 'Paper Win Rock',
-            text: text,
-            url: 'https://t.me/PaperWinRock_bot'
-        });
-    } else {
-        navigator.clipboard.writeText(text);
-        showNotification('Результат скопирован в буфер обмена!');
-    }
+    alert('Поделитесь игрой с друзьями!');
 }
 
 function surrender() {
     if (confirm('Вы уверены, что хотите сдаться?')) {
-        userData.losses = (userData.losses || 0) + 1;
-        userData.stats.winStreak = 0;
-        saveUserData();
-        updateUserUI();
-        
-        showNotification('Вы сдались. Попробуйте снова!');
+        alert('Вы сдались. Попробуйте снова!');
         showScreen('main-menu');
         stopBattleTimer();
     }
 }
 
 function changeSkin(type) {
-    showScreen('shop');
+    alert('Смена скина в разработке');
 }
 
-// Экспорт функций в глобальную область видимости
+// Привязать функции к window
+window.initGame = initGame;
 window.showScreen = showScreen;
 window.startGame = startGame;
 window.startBotGame = startBotGame;
 window.makeChoice = makeChoice;
 window.showHint = showHint;
-window.closeHint = closeHint;
 window.startPvPSearch = startPvPSearch;
 window.cancelSearch = cancelSearch;
 window.showSettings = showSettings;
-window.saveSettings = saveSettings;
 window.changeSkin = changeSkin;
 window.copyReferalLink = copyReferalLink;
-window.shareReferalLink = shareReferalLink;
-window.claimTask = claimTask;
 window.playAgain = playAgain;
 window.shareResult = shareResult;
 window.surrender = surrender;
-window.buySkin = buySkin;
-window.equipSkin = equipSkin;
-window.loadTasks = loadTasks;
+};
+
+// Запустить игру
+document.addEventListener('DOMContentLoaded', initGame);
