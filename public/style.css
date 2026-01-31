@@ -667,7 +667,41 @@ body {
     overflow: hidden;
     transition: all 0.3s ease;
 }
+/* Анимации в бою */
+.choice-display {
+    width: 100px;
+    height: 100px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin: 10px auto;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+    transition: all 0.3s ease;
+}
 
+.choice-display.fighting {
+    animation: shake 0.5s infinite;
+    background-color: rgba(255, 159, 67, 0.3);
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0) rotate(0); }
+    25% { transform: translateX(-5px) rotate(-5deg); }
+    75% { transform: translateX(5px) rotate(5deg); }
+}
+
+/* Превью в результате */
+.choice-preview {
+    width: 80px;
+    height: 80px;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center;
+    margin: 0 auto 10px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.1);
+}
 /* ИГРОК (СЛЕВА) - ОТРАЖЕН */
 .player.you .player-choice-display {
     transform: scaleX(-1) !important;
@@ -1121,3 +1155,4 @@ input:checked + .slider:before {
         padding: 20px;
     }
 }
+
