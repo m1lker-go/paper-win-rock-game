@@ -5,10 +5,17 @@ const CONFIG = {
     ANIMATION_DURATION: 2000, // 2 секунды анимации
     RESULT_DELAY: 3000, // 3 секунды до результата
     REWARD_WIN: 5, // Алмазов за победу
-    REWARD_DRAW: 1 // Алмазов за ничью
+    REWARD_DRAW: 1, // Алмазов за ничью
+    REFERRAL_REWARD_NORMAL: 50, // За обычного пользователя
+    REFERRAL_REWARD_PREMIUM: 250, // За Telegram Premium
+    REFERRAL_MATCHES_REQUIRED: 3, // Матчей для активации реферала
+    DAILY_QUEST_MATCHES: 5,
+    DAILY_QUEST_REWARD: 100,
+    STREAK_QUEST_WINS: 3,
+    STREAK_QUEST_REWARD: 75
 };
 
-// Пути к ресурсам - ИСПРАВЛЕНО!
+// Пути к ресурсам
 const ASSETS = {
     ANIMATIONS: {
         LOADING: 'assets/animations/loading.gif',
@@ -33,6 +40,15 @@ const gameState = {
     losses: 0,
     streak: 0,
     battles: 0,
+    referrals: 0,
+    referralBonus: 0,
+    
+    // Задания
+    dailyMatches: 0,
+    dailyCompleted: false,
+    streakWins: 0,
+    streakCompleted: false,
+    lastPlayedDate: null,
     
     // Настройки
     sound: true,
@@ -45,7 +61,12 @@ const gameState = {
     round: 1,
     
     // Пользователь
-    user: null
+    user: null,
+    referralCode: null,
+    
+    // Рефералы
+    referredUsers: {},
+    referralData: {}
 };
 
 // Инициализация игры
@@ -61,18 +82,18 @@ document.addEventListener('DOMContentLoaded', function() {
     // Обновляем интерфейс
     updateUI();
     
-    // Применяем отражение элементов
-    applyReflection();
+    // Обновляем задания
+    updateQuests();
     
     // Имитируем загрузку
     setTimeout(function() {
         document.getElementById('loading-screen').classList.add('hidden');
         document.getElementById('main-menu').classList.remove('hidden');
         console.log('✅ Игра готова!');
-        
-        // Ещё раз применяем отражение после загрузки
-        setTimeout(applyReflection, 100);
     }, 2000);
+    
+    // Проверяем реферальную ссылку в URL
+    checkReferralFromURL();
 });
 
 // Инициализация Telegram Web App
@@ -89,57 +110,133 @@ function initTelegram() {
                 document.getElementById('username').textContent = user.first_name || 'Игрок';
                 
                 gameState.user = user;
+                
+                // Генерируем реферальный код на основе ID пользователя
+                if (user.id) {
+                    gameState.referralCode = `PWR_${user.id.toString(36).toUpperCase()}`;
+                    updateReferralLink();
+                }
+                
                 console.log('🤖 Telegram пользователь:', user);
             }
         }
     } catch (error) {
         console.error('Ошибка инициализации Telegram:', error);
+        
+        // Тестовые данные для разработки
+        gameState.user = {
+            id: Date.now(),
+            first_name: 'Тестовый Игрок',
+            is_premium: false
+        };
+        gameState.referralCode = `PWR_TEST_${Date.now().toString(36).toUpperCase()}`;
+        updateReferralLink();
     }
 }
 
-// Функция для отражения элементов
-function applyReflection() {
-    console.log('🔄 Применяем отражение элементов...');
+// Обновление реферальной ссылки
+function updateReferralLink() {
+    if (gameState.referralCode) {
+        const baseUrl = window.location.origin + window.location.pathname;
+        const referralLink = `${baseUrl}?ref=${gameState.referralCode}`;
+        document.getElementById('referral-link').value = referralLink;
+    }
+}
+
+// Копирование реферальной ссылки
+function copyReferralLink() {
+    const referralInput = document.getElementById('referral-link');
+    referralInput.select();
+    referralInput.setSelectionRange(0, 99999); // Для мобильных
     
-    // 1. Игрок - отражаем по горизонтали
-    const playerElements = document.querySelectorAll('.player.you, .player-hand');
-    playerElements.forEach(el => {
-        el.style.transform = 'scaleX(-1)';
-        console.log('✅ Отразили игрока:', el);
-    });
-    
-    // 2. Противник - оставляем как есть
-    const botElements = document.querySelectorAll('.player.opponent, .bot-hand');
-    botElements.forEach(el => {
-        el.style.transform = 'scaleX(1)';
-    });
-    
-    // 3. Кнопки выбора - отражаем
-    const choiceButtons = document.querySelectorAll('.choice-btn');
-    choiceButtons.forEach(btn => {
-        btn.style.transform = 'scaleX(-1)';
-        
-        // Текст внутри кнопки оставляем нормальным (отражаем обратно)
-        const textElements = btn.querySelectorAll('.choice-name');
-        textElements.forEach(textEl => {
-            textEl.style.transform = 'scaleX(-1)';
-            textEl.style.display = 'inline-block';
+    try {
+        navigator.clipboard.writeText(referralInput.value).then(function() {
+            showNotification('Ссылка скопирована!');
+            const copyBtn = document.getElementById('copy-btn');
+            const originalText = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="fas fa-check"></i> СКОПИРОВАНО!';
+            copyBtn.style.background = 'linear-gradient(135deg, #4CAF50, #2E7D32)';
+            
+            setTimeout(function() {
+                copyBtn.innerHTML = originalText;
+                copyBtn.style.background = 'linear-gradient(135deg, #9d4edd, #7b2cbf)';
+            }, 2000);
         });
+    } catch (err) {
+        // Fallback для старых браузеров
+        document.execCommand('copy');
+        showNotification('Ссылка скопирована!');
+    }
+}
+
+// Проверка реферальной ссылки из URL
+function checkReferralFromURL() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    
+    if (refCode && gameState.user && gameState.user.id) {
+        // Сохраняем информацию о реферале
+        const referrerData = {
+            referralCode: refCode,
+            userId: gameState.user.id,
+            isPremium: gameState.user.is_premium || false,
+            matchesPlayed: 0,
+            bonusAwarded: false,
+            joinedAt: new Date().toISOString()
+        };
         
-        // Иконки внутри кнопок отражаем
-        const icons = btn.querySelectorAll('.choice-icon');
-        icons.forEach(icon => {
-            icon.style.transform = 'scaleX(-1)';
-        });
+        // Сохраняем в localStorage
+        const referrals = JSON.parse(localStorage.getItem('referralsData') || '{}');
+        referrals[gameState.user.id] = referrerData;
+        localStorage.setItem('referralsData', JSON.stringify(referrals));
+        
+        console.log('📋 Реферал зарегистрирован:', referrerData);
+        showNotification('Вы зашли по реферальной ссылке!');
+    }
+}
+
+// Обновление статистики рефералов
+function updateReferralStats() {
+    // Загружаем данные о рефералах
+    const referrals = JSON.parse(localStorage.getItem('referralsData') || '{}');
+    let activeReferrals = 0;
+    let totalBonus = 0;
+    
+    // Ищем рефералов текущего пользователя
+    Object.values(referrals).forEach(referral => {
+        if (referral.referralCode === gameState.referralCode) {
+            if (referral.matchesPlayed >= CONFIG.REFERRAL_MATCHES_REQUIRED && !referral.bonusAwarded) {
+                // Начисляем бонус
+                const reward = referral.isPremium ? 
+                    CONFIG.REFERRAL_REWARD_PREMIUM : 
+                    CONFIG.REFERRAL_REWARD_NORMAL;
+                
+                gameState.diamonds += reward;
+                totalBonus += reward;
+                referral.bonusAwarded = true;
+                activeReferrals++;
+                
+                showNotification(`+${reward} 💎 за реферала!`);
+            } else if (referral.bonusAwarded) {
+                activeReferrals++;
+                totalBonus += referral.isPremium ? 
+                    CONFIG.REFERRAL_REWARD_PREMIUM : 
+                    CONFIG.REFERRAL_REWARD_NORMAL;
+            }
+        }
     });
     
-    // 4. Превью в результатах
-    const previews = document.querySelectorAll('.player-preview');
-    previews.forEach(preview => {
-        preview.style.transform = 'scaleX(-1)';
-    });
+    // Сохраняем обновленные данные
+    localStorage.setItem('referralsData', JSON.stringify(referrals));
     
-    console.log('✅ Отражение применено!');
+    // Обновляем статистику
+    gameState.referrals = activeReferrals;
+    gameState.referralBonus = totalBonus;
+    
+    // Обновляем UI
+    document.getElementById('referrals-count').textContent = activeReferrals;
+    document.getElementById('referrals-total').textContent = activeReferrals;
+    document.getElementById('referrals-bonus').textContent = `${totalBonus} 💎`;
 }
 
 // Загрузка состояния
@@ -154,8 +251,16 @@ function loadGameState() {
             gameState.losses = parsed.losses || 0;
             gameState.streak = parsed.streak || 0;
             gameState.battles = parsed.battles || 0;
+            gameState.referrals = parsed.referrals || 0;
+            gameState.referralBonus = parsed.referralBonus || 0;
+            gameState.dailyMatches = parsed.dailyMatches || 0;
+            gameState.dailyCompleted = parsed.dailyCompleted || false;
+            gameState.streakWins = parsed.streakWins || 0;
+            gameState.streakCompleted = parsed.streakCompleted || false;
+            gameState.lastPlayedDate = parsed.lastPlayedDate || null;
             gameState.sound = parsed.sound !== undefined ? parsed.sound : true;
             gameState.darkTheme = parsed.darkTheme !== undefined ? parsed.darkTheme : true;
+            gameState.round = parsed.round || 1;
             
             console.log('💾 Состояние загружено:', gameState);
         }
@@ -180,6 +285,77 @@ function updateUI() {
     document.getElementById('wins-count').textContent = gameState.wins;
     document.getElementById('battles-count').textContent = gameState.battles;
     document.getElementById('streak-count').textContent = gameState.streak;
+    document.getElementById('referrals-count').textContent = gameState.referrals;
+    
+    // Обновляем статистику рефералов
+    updateReferralStats();
+}
+
+// Обновление заданий
+function updateQuests() {
+    // Проверяем сброс ежедневного задания
+    const today = new Date().toDateString();
+    if (gameState.lastPlayedDate !== today) {
+        gameState.dailyMatches = 0;
+        gameState.dailyCompleted = false;
+        gameState.lastPlayedDate = today;
+    }
+    
+    // Ежедневное задание
+    const dailyProgress = (gameState.dailyMatches / CONFIG.DAILY_QUEST_MATCHES) * 100;
+    document.getElementById('daily-progress').style.width = `${dailyProgress}%`;
+    document.getElementById('daily-progress-text').textContent = 
+        `${gameState.dailyMatches}/${CONFIG.DAILY_QUEST_MATCHES}`;
+    
+    const dailyBtn = document.getElementById('daily-claim-btn');
+    if (gameState.dailyMatches >= CONFIG.DAILY_QUEST_MATCHES && !gameState.dailyCompleted) {
+        dailyBtn.disabled = false;
+        dailyBtn.style.opacity = '1';
+    } else {
+        dailyBtn.disabled = true;
+        dailyBtn.style.opacity = '0.7';
+    }
+    
+    // Задание на серию побед
+    const streakProgress = (gameState.streakWins / CONFIG.STREAK_QUEST_WINS) * 100;
+    document.getElementById('streak-progress').style.width = `${streakProgress}%`;
+    document.getElementById('streak-progress-text').textContent = 
+        `${gameState.streakWins}/${CONFIG.STREAK_QUEST_WINS}`;
+    
+    const streakBtn = document.getElementById('streak-claim-btn');
+    if (gameState.streakWins >= CONFIG.STREAK_QUEST_WINS && !gameState.streakCompleted) {
+        streakBtn.disabled = false;
+        streakBtn.style.opacity = '1';
+    } else {
+        streakBtn.disabled = true;
+        streakBtn.style.opacity = '0.7';
+    }
+}
+
+// Получение награды за ежедневное задание
+function claimDailyReward() {
+    if (gameState.dailyMatches >= CONFIG.DAILY_QUEST_MATCHES && !gameState.dailyCompleted) {
+        gameState.diamonds += CONFIG.DAILY_QUEST_REWARD;
+        gameState.dailyCompleted = true;
+        
+        showNotification(`+${CONFIG.DAILY_QUEST_REWARD} 💎 за ежедневное задание!`);
+        updateUI();
+        updateQuests();
+        saveGameState();
+    }
+}
+
+// Получение награды за серию побед
+function claimStreakReward() {
+    if (gameState.streakWins >= CONFIG.STREAK_QUEST_WINS && !gameState.streakCompleted) {
+        gameState.diamonds += CONFIG.STREAK_QUEST_REWARD;
+        gameState.streakCompleted = true;
+        
+        showNotification(`+${CONFIG.STREAK_QUEST_REWARD} 💎 за серию побед!`);
+        updateUI();
+        updateQuests();
+        saveGameState();
+    }
 }
 
 // Функции навигации
@@ -208,8 +384,10 @@ function showScreen(screenId) {
         gameState.searchTimer = null;
     }
     
-    // Применяем отражение для нового экрана
-    setTimeout(applyReflection, 50);
+    // Обновляем квесты при показе экрана заданий
+    if (screenId === 'quests') {
+        updateQuests();
+    }
 }
 
 // Начать поиск PvP
@@ -295,9 +473,6 @@ function initBattle(mode) {
     document.getElementById('round-counter').textContent = `Раунд ${gameState.currentGame.round}`;
     document.getElementById('battle-log').innerHTML = '<div class="log-entry">Выберите ваш ход!</div>';
     
-    // Применяем отражение для боя
-    applyReflection();
-    
     // Запуск таймера боя
     startBattleTimer();
 }
@@ -361,7 +536,7 @@ function makeChoice(choice) {
     });
     document.querySelector(`.${choice}-btn`).classList.add('active');
     
-    // Показываем PNG выбора игрока
+    // Показываем PNG выбора игрока (ОТРАЖЕННЫЙ)
     const playerDisplay = document.getElementById('player-choice-display');
     playerDisplay.innerHTML = '';
     playerDisplay.style.background = `url(${ASSETS.ICONS[choice.toUpperCase()]}) no-repeat center/contain`;
@@ -407,7 +582,7 @@ function determineOpponentChoice(playerChoice) {
     
     gameState.currentGame.opponentChoice = opponentChoice;
     
-    // Показываем PNG выбора противника
+    // Показываем PNG выбора противника (НЕ ОТРАЖЕННЫЙ)
     const opponentDisplay = document.getElementById('opponent-choice-display');
     opponentDisplay.innerHTML = '';
     opponentDisplay.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
@@ -429,23 +604,20 @@ function determineOpponentChoice(playerChoice) {
     }, 1000);
 }
 
-// Анимация боя - ИСПРАВЛЕНО!
+// Анимация боя
 function startFightAnimation(playerChoice, opponentChoice) {
     const playerDisplay = document.getElementById('player-choice-display');
     const opponentDisplay = document.getElementById('opponent-choice-display');
     
     console.log('🎬 Запускаем анимацию боя...');
-    console.log('📂 Путь к анимациям:', ASSETS.ANIMATIONS);
     
-    // Запускаем GIF анимации - ИСПРАВЛЕНЫ ПУТИ!
+    // Запускаем GIF анимации
     playerDisplay.style.background = `url(${ASSETS.ANIMATIONS[playerChoice.toUpperCase()]}) no-repeat center/contain`;
     playerDisplay.style.transform = 'scaleX(-1)'; // Отражаем анимацию игрока
+    playerDisplay.classList.add('fighting');
     
     opponentDisplay.style.background = `url(${ASSETS.ANIMATIONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
     opponentDisplay.style.transform = 'scaleX(1)'; // Анимация бота не отражается
-    
-    // Добавляем анимацию пульсации
-    playerDisplay.classList.add('fighting');
     opponentDisplay.classList.add('fighting');
     
     // Обновляем лог
@@ -456,11 +628,10 @@ function startFightAnimation(playerChoice, opponentChoice) {
     setTimeout(function() {
         playerDisplay.style.background = `url(${ASSETS.ICONS[playerChoice.toUpperCase()]}) no-repeat center/contain`;
         playerDisplay.style.transform = 'scaleX(-1)';
+        playerDisplay.classList.remove('fighting');
         
         opponentDisplay.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
         opponentDisplay.style.transform = 'scaleX(1)';
-        
-        playerDisplay.classList.remove('fighting');
         opponentDisplay.classList.remove('fighting');
         
         // Ждём ещё 1 секунду и показываем результат
@@ -490,6 +661,7 @@ function calculateAndShowResult(playerChoice, opponentChoice) {
         reward = CONFIG.REWARD_DRAW;
         
         // Ничья - сохраняем серию
+        gameState.streakWins = 0;
     } else if (results[playerChoice].beats === opponentChoice) {
         result = 'win';
         resultTitle = 'ПОБЕДА!';
@@ -499,23 +671,51 @@ function calculateAndShowResult(playerChoice, opponentChoice) {
         // Обновляем статистику
         gameState.wins++;
         gameState.streak++;
+        gameState.streakWins++;
         gameState.diamonds += reward;
     } else {
         result = 'lose';
         resultTitle = 'ПОРАЖЕНИЕ';
         resultMessage = 'Попробуйте ещё раз!';
         gameState.streak = 0;
+        gameState.streakWins = 0;
     }
     
     // Обновляем общую статистику
     gameState.battles++;
+    gameState.dailyMatches++;
+    
+    // Обновляем счетчик матчей для рефералов
+    updateReferralMatchesCount();
     
     // Сохраняем состояние
     saveGameState();
     updateUI();
+    updateQuests();
     
     // Показываем экран результата
     showResultScreen(result, resultTitle, resultMessage, reward, playerChoice, opponentChoice);
+}
+
+// Обновление счетчика матчей для рефералов
+function updateReferralMatchesCount() {
+    if (!gameState.user || !gameState.user.id) return;
+    
+    const referrals = JSON.parse(localStorage.getItem('referralsData') || '{}');
+    const userData = referrals[gameState.user.id];
+    
+    if (userData && !userData.bonusAwarded) {
+        userData.matchesPlayed++;
+        referrals[gameState.user.id] = userData;
+        localStorage.setItem('referralsData', JSON.stringify(referrals));
+        
+        console.log(`📊 Реферал сыграл матчей: ${userData.matchesPlayed}`);
+        
+        // Если достигли лимита, обновляем статистику
+        if (userData.matchesPlayed >= CONFIG.REFERRAL_MATCHES_REQUIRED) {
+            updateReferralStats();
+        }
+    }
 }
 
 // Показать экран результата
@@ -595,4 +795,6 @@ window.cancelSearch = cancelSearch;
 window.makeChoice = makeChoice;
 window.playAgain = playAgain;
 window.showComingSoon = showComingSoon;
-
+window.copyReferralLink = copyReferralLink;
+window.claimDailyReward = claimDailyReward;
+window.claimStreakReward = claimStreakReward;
