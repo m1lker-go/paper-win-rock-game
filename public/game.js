@@ -21,7 +21,8 @@ const ASSETS = {
         LOADING: 'assets/animations/loading.gif',
         ROCK: 'assets/animations/rock-animation.gif',
         PAPER: 'assets/animations/paper-animation.gif',
-        SCISSORS: 'assets/animations/scissors-animation.gif'
+        SCISSORS: 'assets/animations/scissors-animation.gif',
+        FIGHT: 'assets/animations/fight-animation.gif' // ДОБАВЛЕНО
     },
     ICONS: {
         ROCK: 'assets/icons/rock.png',
@@ -31,6 +32,9 @@ const ASSETS = {
         AVATAR: 'assets/icons/avatar.png'
     }
 };
+
+// Фон для дисплеев выбора
+const DISPLAY_BG_COLOR = 'rgba(255, 255, 255, 0.1)';
 
 // Состояние игры
 const gameState = {
@@ -224,7 +228,7 @@ function updateReferralStats() {
                     CONFIG.REFERRAL_REWARD_NORMAL;
             }
         }
-    });
+    }
     
     // Сохраняем обновленные данные
     localStorage.setItem('referralsData', JSON.stringify(referrals));
@@ -502,15 +506,16 @@ function startBattleTimer() {
     }, 1000);
 }
 
-// Сброс отображения боя
+// Сброс отображения боя - ИЗМЕНЕНО: добавлена анимация боя
 function resetBattleDisplay() {
     const playerDisplay = document.getElementById('player-choice-display');
     const opponentDisplay = document.getElementById('opponent-choice-display');
     
     playerDisplay.innerHTML = '';
     opponentDisplay.innerHTML = '';
-    playerDisplay.style.background = 'rgba(255, 255, 255, 0.1)';
-    opponentDisplay.style.background = 'rgba(255, 255, 255, 0.1)';
+    // Устанавливаем анимацию боя как фон
+    playerDisplay.style.background = `url(${ASSETS.ANIMATIONS.FIGHT}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
+    opponentDisplay.style.background = `url(${ASSETS.ANIMATIONS.FIGHT}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
     
     // Сброс активных кнопок
     document.querySelectorAll('.choice-btn').forEach(btn => {
@@ -518,7 +523,7 @@ function resetBattleDisplay() {
     });
 }
 
-// Сделать выбор
+// Сделать выбор - ИЗМЕНЕНО: добавлена установка PNG с фоном
 function makeChoice(choice) {
     if (!gameState.currentGame || gameState.currentGame.playerChoice) {
         return; // Уже выбрали
@@ -536,10 +541,10 @@ function makeChoice(choice) {
     });
     document.querySelector(`.${choice}-btn`).classList.add('active');
     
-    // Показываем PNG выбора игрока (ОТРАЖЕННЫЙ)
+    // Показываем PNG выбора игрока (ОТРАЖЕННЫЙ) - ИЗМЕНЕНО: добавлен фон
     const playerDisplay = document.getElementById('player-choice-display');
     playerDisplay.innerHTML = '';
-    playerDisplay.style.background = `url(${ASSETS.ICONS[choice.toUpperCase()]}) no-repeat center/contain`;
+    playerDisplay.style.background = `url(${ASSETS.ICONS[choice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
     playerDisplay.style.transform = 'scaleX(-1)'; // Отражаем руку игрока
     
     // Обновляем лог
@@ -558,7 +563,7 @@ function makeChoice(choice) {
     }, 1000);
 }
 
-// Определить выбор противника
+// Определить выбор противника - ИЗМЕНЕНО: добавлена установка PNG с фоном
 function determineOpponentChoice(playerChoice) {
     let opponentChoice;
     
@@ -582,10 +587,10 @@ function determineOpponentChoice(playerChoice) {
     
     gameState.currentGame.opponentChoice = opponentChoice;
     
-    // Показываем PNG выбора противника (НЕ ОТРАЖЕННЫЙ)
+    // Показываем PNG выбора противника (НЕ ОТРАЖЕННЫЙ) - ИЗМЕНЕНО: добавлен фон
     const opponentDisplay = document.getElementById('opponent-choice-display');
     opponentDisplay.innerHTML = '';
-    opponentDisplay.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
+    opponentDisplay.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
     opponentDisplay.style.transform = 'scaleX(1)'; // Рука бота не отражается
     
     // Обновляем лог
@@ -604,19 +609,19 @@ function determineOpponentChoice(playerChoice) {
     }, 1000);
 }
 
-// Анимация боя
+// Анимация боя - ИЗМЕНЕНО: добавлена установка фона для анимации
 function startFightAnimation(playerChoice, opponentChoice) {
     const playerDisplay = document.getElementById('player-choice-display');
     const opponentDisplay = document.getElementById('opponent-choice-display');
     
     console.log('🎬 Запускаем анимацию боя...');
     
-    // Запускаем GIF анимации
-    playerDisplay.style.background = `url(${ASSETS.ANIMATIONS[playerChoice.toUpperCase()]}) no-repeat center/contain`;
+    // Запускаем GIF анимации - ИЗМЕНЕНО: добавлен фон
+    playerDisplay.style.background = `url(${ASSETS.ANIMATIONS[playerChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
     playerDisplay.style.transform = 'scaleX(-1)'; // Отражаем анимацию игрока
     playerDisplay.classList.add('fighting');
     
-    opponentDisplay.style.background = `url(${ASSETS.ANIMATIONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
+    opponentDisplay.style.background = `url(${ASSETS.ANIMATIONS[opponentChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
     opponentDisplay.style.transform = 'scaleX(1)'; // Анимация бота не отражается
     opponentDisplay.classList.add('fighting');
     
@@ -624,13 +629,13 @@ function startFightAnimation(playerChoice, opponentChoice) {
     document.getElementById('battle-log').innerHTML += 
         '<div class="log-entry">СРАЖЕНИЕ!</div>';
     
-    // Через 2 секунды возвращаем PNG и показываем результат
+    // Через 2 секунды возвращаем PNG и показываем результат - ИЗМЕНЕНО: добавлен фон
     setTimeout(function() {
-        playerDisplay.style.background = `url(${ASSETS.ICONS[playerChoice.toUpperCase()]}) no-repeat center/contain`;
+        playerDisplay.style.background = `url(${ASSETS.ICONS[playerChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
         playerDisplay.style.transform = 'scaleX(-1)';
         playerDisplay.classList.remove('fighting');
         
-        opponentDisplay.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
+        opponentDisplay.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
         opponentDisplay.style.transform = 'scaleX(1)';
         opponentDisplay.classList.remove('fighting');
         
