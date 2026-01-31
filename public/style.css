@@ -673,4 +673,3 @@ input:checked + .slider:before {
     background: linear-gradient(135deg, #ff5252, #ff3838);
     transform: translateY(-2px);
 }
-
