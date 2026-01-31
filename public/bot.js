@@ -1,3 +1,6 @@
+console.log('🚀 Запуск Paper-Win-Rock...');
+console.log('📁 Текущая директория:', __dirname);
+
 const { Telegraf } = require('telegraf');
 const express = require('express');
 const path = require('path');
@@ -490,3 +493,4 @@ process.once('SIGTERM', () => {
   bot.stop('SIGTERM');
   process.exit(0);
 });
+
