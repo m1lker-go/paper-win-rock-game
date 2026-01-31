@@ -228,7 +228,7 @@ function updateReferralStats() {
                     CONFIG.REFERRAL_REWARD_NORMAL;
             }
         }
-    }
+    }); // ИСПРАВЛЕНО: добавлена закрывающая скобка
     
     // Сохраняем обновленные данные
     localStorage.setItem('referralsData', JSON.stringify(referrals));
