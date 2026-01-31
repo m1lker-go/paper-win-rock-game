@@ -29,3 +29,10 @@
   "author": "Your Name",
   "license": "MIT"
 }
+{
+  "scripts": {
+    "start": "node index.js",
+    "dev": "nodemon index.js",
+    "setup-db": "mongod --dbpath ./data/db"
+  }
+}
