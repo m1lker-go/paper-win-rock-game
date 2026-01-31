@@ -1,20 +1,18 @@
 {
-  "name": "paper-win-rock-game",
+  "name": "paper-win-rock",
   "version": "2.0.0",
-  "description": "Paper Win Rock Telegram Game with PvP and Referral System",
   "main": "bot.js",
   "scripts": {
-    "start": "node bot.js",
-    "dev": "nodemon bot.js"
+    "start": "node bot.js"
   },
   "dependencies": {
-    "telegraf": "^4.15.0",
+    "telegraf": "^4.12.2",
     "express": "^4.18.2",
-    "socket.io": "^4.7.0",
+    "socket.io": "^4.7.2",
     "uuid": "^9.0.0",
-    "node-telegram-bot-api": "^0.61.0",
-    "crypto": "^1.0.1"
-  },
+    "node-fetch": "^2.6.9"
+  }
+},
   "engines": {
     "node": ">=16.0.0"
   },
