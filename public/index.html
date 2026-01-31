@@ -7,6 +7,23 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <link rel="stylesheet" href="style.css">
+    <style>
+        /* Временные стили для отражения */
+        .player-choice-display,
+        .player-choice-display * {
+            transform: scaleX(-1) !important;
+        }
+        
+        .choice-btn,
+        .choice-btn * {
+            transform: scaleX(-1) !important;
+        }
+        
+        .choice-btn .choice-name {
+            transform: scaleX(-1) !important;
+            display: inline-block !important;
+        }
+    </style>
 </head>
 <body>
     <!-- Экран загрузки -->
@@ -133,8 +150,8 @@
         <div class="players-container">
             <!-- Игрок -->
             <div class="player you">
-                <div class="player-name" id="player-name">Вы</div>
-                <div class="player-choice-display" id="player-choice-display">
+                <div class="player-name" id="player-name">ВЫ</div>
+                <div class="player-choice-display player-hand" id="player-choice-display">
                     <!-- Здесь будет PNG или GIF -->
                 </div>
             </div>
@@ -145,7 +162,7 @@
             <!-- Противник -->
             <div class="player opponent">
                 <div class="player-name" id="opponent-name">Поиск...</div>
-                <div class="player-choice-display" id="opponent-choice-display">
+                <div class="player-choice-display bot-hand" id="opponent-choice-display">
                     <!-- Здесь будет PNG или GIF -->
                 </div>
             </div>
@@ -189,9 +206,9 @@
                     </div>
                     
                     <div class="choices-preview">
-                        <div class="choice-preview" id="player-preview"></div>
+                        <div class="choice-preview player-preview" id="player-preview"></div>
                         <div class="vs-small">VS</div>
-                        <div class="choice-preview" id="opponent-preview"></div>
+                        <div class="choice-preview opponent-preview" id="opponent-preview"></div>
                     </div>
                 </div>
 
@@ -253,42 +270,7 @@
             <span id="notification-text">+5 алмазов</span>
         </div>
     </div>
-<!-- Внутри блока выбора (там где кнопки) -->
-<div class="choices">
-    <button class="choice-button" data-choice="rock">
-        <!-- Если есть иконка -->
-        <img src="images/rock-icon.png" alt="Камень">
-        <span>КАМЕНЬ</span>
-    </button>
-    
-    <button class="choice-button" data-choice="paper">
-        <img src="images/paper-icon.png" alt="Бумага">
-        <span>БУМАГА</span>
-    </button>
-    
-    <button class="choice-button" data-choice="scissors">
-        <img src="images/scissors-icon.png" alt="Ножницы">
-        <span>НОЖНИЦЫ</span>
-    </button>
-</div>
 
-<!-- В блоке боя -->
-<div class="battle-screen">
-    <div class="battle-hands">
-        <div class="player-hand" style="transform: scaleX(-1);">
-            <!-- Иконка игрока -->
-        </div>
-        
-        <div class="vs-text">VS</div>
-        
-        <div class="bot-hand" style="transform: scaleX(1);">
-            <!-- Иконка бота -->
-        </div>
-    </div>
-</div>
     <script src="game.js"></script>
-<script src="reflection-fix.js"></script>
 </body>
 </html>
-
-
