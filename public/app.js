@@ -5,6 +5,81 @@ let currentGame = null;
 let gameTimer = null;
 let battleAnimationInterval = null;
 let waitingAnimationActive = true;
+// Добавим в начало app.js после объявления переменных
+const ASSETS = {
+    ANIMATIONS: {
+        LOADING: 'assets/animations/loading.gif',
+        ROCK: 'assets/animations/rock-animation.gif',
+        PAPER: 'assets/animations/paper-animation.gif',
+        SCISSORS: 'assets/animations/scissors-animation.gif'
+    },
+    ICONS: {
+        ROCK: 'assets/icons/rock.png',
+        PAPER: 'assets/icons/paper.png',
+        SCISSORS: 'assets/icons/scissors.png',
+        GEM: 'assets/icons/gem.png',
+        AVATAR: 'assets/icons/avatar.png'
+    }
+};
+
+// Обновим функцию startLoading
+function startLoading() {
+    const progressBar = document.querySelector('.progress');
+    const loadingPercent = document.getElementById('loading-percent');
+    
+    if (progressBar && loadingPercent) {
+        let width = 0;
+        const interval = setInterval(() => {
+            if (width >= 100) {
+                clearInterval(interval);
+                
+                // Загружаем данные
+                updateUserUI();
+                loadSkins();
+                loadTasks();
+                
+                // Показываем главное меню через 0.5 секунды
+                setTimeout(() => {
+                    showScreen('main-menu');
+                }, 500);
+                return;
+            }
+            width += 2;
+            progressBar.style.width = width + '%';
+            loadingPercent.textContent = width + '%';
+        }, 20);
+    }
+}
+
+// Обновим функцию updateUserUI для загрузки аватара
+function updateUserUI() {
+    if (!userData) return;
+    
+    // Обновить аватар
+    const avatarImg = document.getElementById('avatar-img');
+    if (avatarImg) {
+        avatarImg.src = ASSETS.ICONS.AVATAR;
+        avatarImg.alt = userData.firstName || userData.username;
+    }
+    
+    // Остальной код остается прежним...
+}
+
+// Обновим функцию loadSkins для использования картинок
+function getSkinImage(type, skinId = 'default') {
+    // Для простоты используем эмодзи, но можно заменить на картинки
+    const emojis = {
+        default: { rock: '✊', paper: '✋', scissors: '✌️' },
+        fire: { rock: '🔥', paper: '🔥', scissors: '🔥' },
+        ice: { rock: '❄️', paper: '❄️', scissors: '❄️' },
+        thunder: { rock: '⚡', paper: '⚡', scissors: '⚡' },
+        gold: { rock: '🥇', paper: '🥇', scissors: '🥇' },
+        diamond: { rock: '💎', paper: '💎', scissors: '💎' }
+    };
+    
+    const skin = emojis[skinId] || emojis.default;
+    return skin[type] || skin[type];
+}
 
 // Дни недели для ежедневных заданий
 const daysOfWeek = ['воскресенье', 'понедельник', 'вторник', 'среду', 'четверг', 'пятницу', 'субботу'];
@@ -1162,3 +1237,4 @@ window.surrender = surrender;
 window.buySkin = buySkin;
 window.equipSkin = equipSkin;
 window.loadTasks = loadTasks;
+
