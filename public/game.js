@@ -12,7 +12,8 @@ const CONFIG = {
     DAILY_QUEST_MATCHES: 5,
     DAILY_QUEST_REWARD: 100,
     STREAK_QUEST_WINS: 3,
-    STREAK_QUEST_REWARD: 75
+    STREAK_QUEST_REWARD: 75,
+    BOT_USERNAME: 'PaperWinRock_bot' // Добавлено имя бота
 };
 
 // Пути к ресурсам
@@ -141,9 +142,9 @@ function initTelegram() {
 // Обновление реферальной ссылки
 function updateReferralLink() {
     if (gameState.referralCode) {
-        const baseUrl = window.location.origin + window.location.pathname;
-        const referralLink = `${baseUrl}?ref=${gameState.referralCode}`;
-        document.getElementById('referral-link').value = referralLink;
+        // Генерируем ссылку на Telegram бота
+        const botLink = `https://t.me/${CONFIG.BOT_USERNAME}?start=${gameState.referralCode}`;
+        document.getElementById('referral-link').value = botLink;
     }
 }
 
@@ -155,7 +156,7 @@ function copyReferralLink() {
     
     try {
         navigator.clipboard.writeText(referralInput.value).then(function() {
-            showNotification('Ссылка скопирована!');
+            showNotification('Ссылка на бота скопирована!');
             const copyBtn = document.getElementById('copy-btn');
             const originalText = copyBtn.innerHTML;
             copyBtn.innerHTML = '<i class="fas fa-check"></i> СКОПИРОВАНО!';
@@ -169,7 +170,43 @@ function copyReferralLink() {
     } catch (err) {
         // Fallback для старых браузеров
         document.execCommand('copy');
-        showNotification('Ссылка скопирована!');
+        showNotification('Ссылка на бота скопирована!');
+    }
+}
+
+// Поделиться реферальной ссылкой
+function shareReferralLink() {
+    if (!gameState.referralCode) return;
+    
+    const botLink = `https://t.me/${CONFIG.BOT_USERNAME}?start=${gameState.referralCode}`;
+    const shareText = `🎮 Присоединяйся к Paper Win Rock!\n\nИграй в крутую игру "Камень-Ножницы-Бумага" с ботами, скинами и заданиями!\n\nТвоя реферальная ссылка: ${botLink}`;
+    
+    // Проверяем, находимся ли мы в Telegram Web App
+    if (window.Telegram && Telegram.WebApp) {
+        // В Telegram Web App используем Telegram Share
+        if (Telegram.WebApp.openTelegramLink) {
+            Telegram.WebApp.openTelegramLink(botLink);
+        } else {
+            // Fallback для старых версий
+            const shareUrl = `https://t.me/share/url?url=${encodeURIComponent(botLink)}&text=${encodeURIComponent(shareText)}`;
+            window.open(shareUrl, '_blank');
+        }
+        showNotification('Открываю Telegram для отправки...');
+    } else if (navigator.share) {
+        // Используем Web Share API для мобильных браузеров
+        navigator.share({
+            title: 'Paper Win Rock',
+            text: shareText,
+            url: botLink
+        }).then(() => {
+            showNotification('Поделились успешно!');
+        }).catch((error) => {
+            console.log('Ошибка шаринга:', error);
+            copyReferralLink(); // Fallback на копирование
+        });
+    } else {
+        // Fallback: копируем ссылку
+        copyReferralLink();
     }
 }
 
@@ -831,5 +868,6 @@ window.makeChoice = makeChoice;
 window.playAgain = playAgain;
 window.showComingSoon = showComingSoon;
 window.copyReferralLink = copyReferralLink;
+window.shareReferralLink = shareReferralLink;
 window.claimDailyReward = claimDailyReward;
 window.claimStreakReward = claimStreakReward;
