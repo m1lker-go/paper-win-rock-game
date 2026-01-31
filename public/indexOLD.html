@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paper Win Rock 🎮</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://telegram.org/js/telegram-web-app.js"></script>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        /* Временные стили для отражения */
+        .player.you .player-choice-display,
+        .player.you .choice-preview {
+            transform: scaleX(-1) !important;
+        }
+        
+        .player.opponent .player-choice-display,
+        .player.opponent .choice-preview {
+            transform: scaleX(1) !important;
+        }
+        
+        .choice-btn {
+            transform: scaleX(-1);
+        }
+        
+        .choice-btn .choice-name {
+            transform: scaleX(-1);
+            display: inline-block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Экран загрузки -->
+    <div id="loading-screen" class="screen">
+        <div class="loader">
+            <div class="loading-animation" id="loading-animation"></div>
+            <div class="loading-text">Загрузка игры...</div>
+        </div>
+    </div>
+
+    <!-- Главное меню -->
+    <div id="main-menu" class="screen hidden">
+        <div class="header">
+            <div class="diamond-counter">
+                <img src="assets/icons/gem.png" alt="💎" class="gem-icon">
+                <span id="total-diamonds">0</span>
+            </div>
+            <div class="player-info">
+                <div class="avatar" id="user-avatar">
+                    <img src="assets/icons/avatar.png" alt="👤">
+                </div>
+                <div class="name" id="username">Игрок</div>
+            </div>
+        </div>
+
+        <div class="menu-content">
+            <h1 class="game-title">PAPER WIN ROCK</h1>
+            <p class="game-subtitle">Бросай вызов игрокам!</p>
+
+            <div class="menu-buttons">
+                <button class="menu-btn fight-btn" onclick="startPvPSearch()">
+                    <i class="fas fa-fist-raised"></i>
+                    <span>СРАЖАТЬСЯ</span>
+                    <small>PvP или с ботом</small>
+                </button>
+                
+                <button class="menu-btn" onclick="showScreen('quests')">
+                    <i class="fas fa-tasks"></i>
+                    <span>ЗАДАНИЯ</span>
+                    <small>Рефералы и бонусы</small>
+                </button>
+                
+                <button class="menu-btn disabled" onclick="showComingSoon()">
+                    <i class="fas fa-store"></i>
+                    <span>МАГАЗИН</span>
+                    <small>Скоро</small>
+                </button>
+                
+                <button class="menu-btn disabled" onclick="showComingSoon()">
+                    <i class="fas fa-trophy"></i>
+                    <span>РЕЙТИНГ</span>
+                    <small>Скоро</small>
+                </button>
+                
+                <button class="menu-btn settings-btn" onclick="showScreen('settings')">
+                    <i class="fas fa-cog"></i>
+                    <span>НАСТРОЙКИ</span>
+                    <small>Звук и тема</small>
+                </button>
+            </div>
+
+            <div class="stats">
+                <div class="stat-item">
+                    <div class="stat-icon">🏆</div>
+                    <div class="stat-text">
+                        <div class="stat-value" id="wins-count">0</div>
+                        <div class="stat-label">Побед</div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">💥</div>
+                    <div class="stat-text">
+                        <div class="stat-value" id="battles-count">0</div>
+                        <div class="stat-label">Боёв</div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-text">
+                        <div class="stat-value" id="streak-count">0</div>
+                        <div class="stat-label">Серия</div>
+                    </div>
+                </div>
+                <div class="stat-item">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-text">
+                        <div class="stat-value" id="referrals-count">0</div>
+                        <div class="stat-label">Рефералы</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Задания и рефералы -->
+    <div id="quests-screen" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>ЗАДАНИЯ И БОНУСЫ</h2>
+        </div>
+
+        <div class="quests-content">
+            <div class="quest-card main-quest">
+                <div class="quest-header">
+                    <i class="fas fa-user-plus"></i>
+                    <h3>ПРИГЛАСИ ДРУЗЕЙ</h3>
+                </div>
+                <div class="quest-description">
+                    <p>Приглашайте друзей и получайте бонусы!</p>
+                    <div class="reward-info">
+                        <span>За обычного пользователя: <span class="reward-amount">+50 💎</span></span>
+                        <span>За Telegram Premium: <span class="reward-premium">+250 💎</span></span>
+                    </div>
+                </div>
+                <div class="referral-section">
+                    <div class="referral-link-container">
+                        <input type="text" id="referral-link" readonly value="Загрузка...">
+                        <button class="copy-btn" onclick="copyReferralLink()" id="copy-btn">
+                            <i class="fas fa-copy"></i> КОПИРОВАТЬ
+                        </button>
+                    </div>
+                    <div class="referral-stats">
+                        <div class="stat-box">
+                            <span class="stat-label">Приглашено:</span>
+                            <span class="stat-value" id="referrals-total">0</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label">Бонусы:</span>
+                            <span class="stat-value" id="referrals-bonus">0 💎</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="quest-footer">
+                    <p class="small-info">Бонус начисляется после 3 матчей приглашённого игрока</p>
+                </div>
+            </div>
+
+            <div class="quest-card daily-quest">
+                <div class="quest-header">
+                    <i class="fas fa-calendar-day"></i>
+                    <h3>ЕЖЕДНЕВНАЯ ЗАДАЧА</h3>
+                </div>
+                <div class="quest-description">
+                    <p>Сыграйте 5 матчей за день</p>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="daily-progress" style="width: 0%"></div>
+                        </div>
+                        <span class="progress-text" id="daily-progress-text">0/5</span>
+                    </div>
+                </div>
+                <div class="quest-reward">
+                    <span>Награда:</span>
+                    <span class="reward">+100 💎</span>
+                </div>
+                <button class="quest-btn" id="daily-claim-btn" onclick="claimDailyReward()" disabled>
+                    <i class="fas fa-gift"></i> ПОЛУЧИТЬ НАГРАДУ
+                </button>
+            </div>
+
+            <div class="quest-card win-quest">
+                <div class="quest-header">
+                    <i class="fas fa-trophy"></i>
+                    <h3>СЕРИЯ ПОБЕД</h3>
+                </div>
+                <div class="quest-description">
+                    <p>Выиграйте 3 матча подряд</p>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="streak-progress" style="width: 0%"></div>
+                        </div>
+                        <span class="progress-text" id="streak-progress-text">0/3</span>
+                    </div>
+                </div>
+                <div class="quest-reward">
+                    <span>Награда:</span>
+                    <span class="reward">+75 💎</span>
+                </div>
+                <button class="quest-btn" id="streak-claim-btn" onclick="claimStreakReward()" disabled>
+                    <i class="fas fa-gift"></i> ПОЛУЧИТЬ НАГРАДУ
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Поиск противника -->
+    <div id="search-screen" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="cancelSearch()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>ПОИСК ПРОТИВНИКА</h2>
+        </div>
+
+        <div class="search-content">
+            <div class="search-animation">
+                <div class="searching-animation" id="searching-animation"></div>
+                <div class="search-text">Ищем живого соперника...</div>
+            </div>
+
+            <div class="search-timer">
+                <div class="timer-circle">
+                    <div class="timer-text" id="search-timer">15</div>
+                </div>
+                <div class="timer-label">СЕКУНД</div>
+            </div>
+
+            <div class="search-info">
+                <p>Если противник не найдётся за 15 секунд, вы сразитесь с ботом!</p>
+            </div>
+
+            <button class="cancel-btn" onclick="cancelSearch()">
+                <i class="fas fa-times"></i> ОТМЕНИТЬ ПОИСК
+            </button>
+        </div>
+    </div>
+
+    <!-- Экран боя -->
+    <div id="battle-screen" class="screen hidden">
+        <div class="battle-header">
+            <div class="battle-info">
+                <div class="battle-type" id="battle-type">PvP БИТВА</div>
+                <div class="round-counter" id="round-counter">Раунд 1</div>
+            </div>
+            <div class="timer" id="battle-timer">10</div>
+        </div>
+
+        <div class="players-container">
+            <!-- Игрок -->
+            <div class="player you">
+                <div class="player-name" id="player-name">ВЫ</div>
+                <div class="player-choice-display" id="player-choice-display">
+                    <!-- Здесь будет PNG или GIF -->
+                </div>
+            </div>
+
+            <!-- VS -->
+            <div class="vs">VS</div>
+
+            <!-- Противник -->
+            <div class="player opponent">
+                <div class="player-name" id="opponent-name">Поиск...</div>
+                <div class="player-choice-display" id="opponent-choice-display">
+                    <!-- Здесь будет PNG или GIF -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Кнопки выбора -->
+        <div class="choices-container">
+            <button class="choice-btn rock-btn" onclick="makeChoice('rock')">
+                <div class="choice-icon" id="rock-icon"></div>
+                <div class="choice-name">КАМЕНЬ</div>
+            </button>
+            
+            <button class="choice-btn paper-btn" onclick="makeChoice('paper')">
+                <div class="choice-icon" id="paper-icon"></div>
+                <div class="choice-name">БУМАГА</div>
+            </button>
+            
+            <button class="choice-btn scissors-btn" onclick="makeChoice('scissors')">
+                <div class="choice-icon" id="scissors-icon"></div>
+                <div class="choice-name">НОЖНИЦЫ</div>
+            </button>
+        </div>
+
+        <div class="battle-log" id="battle-log">
+            <div class="log-entry">Выберите ваш ход!</div>
+        </div>
+    </div>
+
+    <!-- Результат боя -->
+    <div id="result-screen" class="screen hidden">
+        <div class="result-overlay">
+            <div class="result-content">
+                <div class="result-title" id="result-title">ПОБЕДА!</div>
+                
+                <div class="result-details">
+                    <div class="result-message" id="result-message">Вы победили в бою!</div>
+                    
+                    <div class="reward" id="reward-container">
+                        <img src="assets/icons/gem.png" alt="💎" class="gem-icon">
+                        <span id="reward-amount">+5</span>
+                    </div>
+                    
+                    <div class="choices-preview">
+                        <div class="choice-preview" id="player-preview"></div>
+                        <div class="vs-small">VS</div>
+                        <div class="choice-preview" id="opponent-preview"></div>
+                    </div>
+                </div>
+
+                <div class="result-buttons">
+                    <button class="result-btn again" onclick="playAgain()">
+                        <i class="fas fa-redo"></i> СЫГРАТЬ ЕЩЁ
+                    </button>
+                    <button class="result-btn menu" onclick="showScreen('main-menu')">
+                        <i class="fas fa-home"></i> НАЗАД
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Настройки -->
+    <div id="settings-screen" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>НАСТРОЙКИ</h2>
+        </div>
+
+        <div class="settings-content">
+            <div class="setting-group">
+                <h3><i class="fas fa-volume-up"></i> Звук</h3>
+                <div class="setting">
+                    <span>Звуки игры</span>
+                    <label class="switch">
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3><i class="fas fa-palette"></i> Внешний вид</h3>
+                <div class="setting">
+                    <span>Тёмная тема</span>
+                    <label class="switch">
+                        <input type="checkbox" id="theme-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="about">
+                <p>Paper Win Rock v1.0</p>
+                <p>Сделано с ❤️ для Telegram Mini Apps</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомление -->
+    <div id="notification" class="hidden">
+        <div class="notification-content">
+            <img src="assets/icons/gem.png" alt="💎" class="gem-icon small">
+            <span id="notification-text">+5 алмазов</span>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
+</body>
+</html>
