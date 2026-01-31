@@ -9,3 +9,17 @@ services:
         value: production
     healthCheckPath: /health
     autoDeploy: true
+
+services:
+  - type: web
+    name: paper-win-rock
+    env: node
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: BOT_TOKEN
+        sync: false  # Установите вручную в панели Render
+    healthCheckPath: /health
+    autoDeploy: true
