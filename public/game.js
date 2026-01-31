@@ -22,7 +22,7 @@ const ASSETS = {
         ROCK: 'assets/animations/rock-animation.gif',
         PAPER: 'assets/animations/paper-animation.gif',
         SCISSORS: 'assets/animations/scissors-animation.gif',
-        FIGHT: 'assets/animations/fight-animation.gif' // ДОБАВЛЕНО
+        FIGHT: 'assets/animations/fight-animation.gif'
     },
     ICONS: {
         ROCK: 'assets/icons/rock.png',
@@ -228,7 +228,7 @@ function updateReferralStats() {
                     CONFIG.REFERRAL_REWARD_NORMAL;
             }
         }
-    }); // ИСПРАВЛЕНО: добавлена закрывающая скобка
+    });
     
     // Сохраняем обновленные данные
     localStorage.setItem('referralsData', JSON.stringify(referrals));
@@ -477,6 +477,9 @@ function initBattle(mode) {
     document.getElementById('round-counter').textContent = `Раунд ${gameState.currentGame.round}`;
     document.getElementById('battle-log').innerHTML = '<div class="log-entry">Выберите ваш ход!</div>';
     
+    // Сброс отображения боя
+    resetBattleDisplay();
+    
     // Запуск таймера боя
     startBattleTimer();
 }
@@ -506,7 +509,7 @@ function startBattleTimer() {
     }, 1000);
 }
 
-// Сброс отображения боя - ИЗМЕНЕНО: добавлена анимация боя
+// Сброс отображения боя
 function resetBattleDisplay() {
     const playerDisplay = document.getElementById('player-choice-display');
     const opponentDisplay = document.getElementById('opponent-choice-display');
@@ -523,7 +526,7 @@ function resetBattleDisplay() {
     });
 }
 
-// Сделать выбор - ИЗМЕНЕНО: добавлена установка PNG с фоном
+// Сделать выбор
 function makeChoice(choice) {
     if (!gameState.currentGame || gameState.currentGame.playerChoice) {
         return; // Уже выбрали
@@ -541,12 +544,6 @@ function makeChoice(choice) {
     });
     document.querySelector(`.${choice}-btn`).classList.add('active');
     
-    // Показываем PNG выбора игрока (ОТРАЖЕННЫЙ) - ИЗМЕНЕНО: добавлен фон
-    const playerDisplay = document.getElementById('player-choice-display');
-    playerDisplay.innerHTML = '';
-    playerDisplay.style.background = `url(${ASSETS.ICONS[choice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
-    playerDisplay.style.transform = 'scaleX(-1)'; // Отражаем руку игрока
-    
     // Обновляем лог
     const choiceNames = {
         rock: 'Камень',
@@ -557,41 +554,57 @@ function makeChoice(choice) {
     document.getElementById('battle-log').innerHTML = 
         `<div class="log-entry">Вы выбрали ${choiceNames[choice]}!</div>`;
     
-    // Ждём и показываем выбор противника
+    // Ждём 1 секунду и показываем повторную анимацию боя
     setTimeout(function() {
-        determineOpponentChoice(choice);
+        showFinalFightAnimation();
     }, 1000);
 }
 
-// Определить выбор противника - ИЗМЕНЕНО: добавлена установка PNG с фоном
-function determineOpponentChoice(playerChoice) {
+// Показать финальную анимацию боя (перед выбором)
+function showFinalFightAnimation() {
+    const playerDisplay = document.getElementById('player-choice-display');
+    const opponentDisplay = document.getElementById('opponent-choice-display');
+    
+    console.log('🎬 Показываем финальную анимацию боя...');
+    
+    // Обновляем лог
+    document.getElementById('battle-log').innerHTML += 
+        '<div class="log-entry">СРАЖЕНИЕ!</div>';
+    
+    // Показываем анимацию боя ещё раз (1 цикл)
+    playerDisplay.style.background = `url(${ASSETS.ANIMATIONS.FIGHT}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
+    playerDisplay.style.transform = 'scaleX(-1)'; // Отражаем анимацию игрока
+    playerDisplay.classList.add('fighting');
+    
+    opponentDisplay.style.background = `url(${ASSETS.ANIMATIONS.FIGHT}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
+    opponentDisplay.style.transform = 'scaleX(1)'; // Анимация бота не отражается
+    opponentDisplay.classList.add('fighting');
+    
+    // Через 1 секунду бот делает выбор
+    setTimeout(function() {
+        botMakeChoice(gameState.currentGame.playerChoice);
+    }, 1000);
+}
+
+// Бот делает выбор
+function botMakeChoice(playerChoice) {
+    if (!gameState.currentGame) return;
+    
     let opponentChoice;
     
-    if (gameState.currentGame.isPvP) {
-        // PvP: случайный выбор
+    // Бот: 60% шанс проиграть (для баланса)
+    if (Math.random() < 0.6) {
+        // Бот проигрывает
+        if (playerChoice === 'rock') opponentChoice = 'scissors';
+        else if (playerChoice === 'paper') opponentChoice = 'rock';
+        else opponentChoice = 'paper';
+    } else {
+        // Бот выигрывает или ничья
         const choices = ['rock', 'paper', 'scissors'];
         opponentChoice = choices[Math.floor(Math.random() * choices.length)];
-    } else {
-        // Бот: 60% шанс проиграть (для баланса)
-        if (Math.random() < 0.6) {
-            // Бот проигрывает
-            if (playerChoice === 'rock') opponentChoice = 'scissors';
-            else if (playerChoice === 'paper') opponentChoice = 'rock';
-            else opponentChoice = 'paper';
-        } else {
-            // Бот выигрывает или ничья
-            const choices = ['rock', 'paper', 'scissors'];
-            opponentChoice = choices[Math.floor(Math.random() * choices.length)];
-        }
     }
     
     gameState.currentGame.opponentChoice = opponentChoice;
-    
-    // Показываем PNG выбора противника (НЕ ОТРАЖЕННЫЙ) - ИЗМЕНЕНО: добавлен фон
-    const opponentDisplay = document.getElementById('opponent-choice-display');
-    opponentDisplay.innerHTML = '';
-    opponentDisplay.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
-    opponentDisplay.style.transform = 'scaleX(1)'; // Рука бота не отражается
     
     // Обновляем лог
     const choiceNames = {
@@ -603,47 +616,58 @@ function determineOpponentChoice(playerChoice) {
     document.getElementById('battle-log').innerHTML += 
         `<div class="log-entry">Противник выбрал ${choiceNames[opponentChoice]}!</div>`;
     
-    // Ждём и запускаем анимацию боя
+    // Ждём 0.5 секунды и запускаем анимацию выборов
     setTimeout(function() {
-        startFightAnimation(playerChoice, opponentChoice);
-    }, 1000);
+        startChoiceAnimations(playerChoice, opponentChoice);
+    }, 500);
 }
 
-// Анимация боя - ИЗМЕНЕНО: добавлена установка фона для анимации
-function startFightAnimation(playerChoice, opponentChoice) {
+// Запуск анимации выборов
+function startChoiceAnimations(playerChoice, opponentChoice) {
     const playerDisplay = document.getElementById('player-choice-display');
     const opponentDisplay = document.getElementById('opponent-choice-display');
     
-    console.log('🎬 Запускаем анимацию боя...');
+    console.log('🎬 Запускаем анимацию выборов...');
     
-    // Запускаем GIF анимации - ИЗМЕНЕНО: добавлен фон
+    // Запускаем GIF анимации выборов
     playerDisplay.style.background = `url(${ASSETS.ANIMATIONS[playerChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
     playerDisplay.style.transform = 'scaleX(-1)'; // Отражаем анимацию игрока
-    playerDisplay.classList.add('fighting');
+    playerDisplay.classList.remove('fighting');
     
     opponentDisplay.style.background = `url(${ASSETS.ANIMATIONS[opponentChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
     opponentDisplay.style.transform = 'scaleX(1)'; // Анимация бота не отражается
-    opponentDisplay.classList.add('fighting');
+    opponentDisplay.classList.remove('fighting');
     
     // Обновляем лог
     document.getElementById('battle-log').innerHTML += 
-        '<div class="log-entry">СРАЖЕНИЕ!</div>';
+        '<div class="log-entry">Показываем выборы!</div>';
     
-    // Через 2 секунды возвращаем PNG и показываем результат - ИЗМЕНЕНО: добавлен фон
+    // Через 2 секунды возвращаем PNG и показываем результат
     setTimeout(function() {
-        playerDisplay.style.background = `url(${ASSETS.ICONS[playerChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
-        playerDisplay.style.transform = 'scaleX(-1)';
-        playerDisplay.classList.remove('fighting');
-        
-        opponentDisplay.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
-        opponentDisplay.style.transform = 'scaleX(1)';
-        opponentDisplay.classList.remove('fighting');
-        
-        // Ждём ещё 1 секунду и показываем результат
-        setTimeout(function() {
-            calculateAndShowResult(playerChoice, opponentChoice);
-        }, 1000);
+        showFinalChoices(playerChoice, opponentChoice);
     }, CONFIG.ANIMATION_DURATION);
+}
+
+// Показать финальные выборы (PNG) и результат
+function showFinalChoices(playerChoice, opponentChoice) {
+    const playerDisplay = document.getElementById('player-choice-display');
+    const opponentDisplay = document.getElementById('opponent-choice-display');
+    
+    // Показываем PNG выборов
+    playerDisplay.style.background = `url(${ASSETS.ICONS[playerChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
+    playerDisplay.style.transform = 'scaleX(-1)';
+    
+    opponentDisplay.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain, ${DISPLAY_BG_COLOR}`;
+    opponentDisplay.style.transform = 'scaleX(1)';
+    
+    // Обновляем лог
+    document.getElementById('battle-log').innerHTML += 
+        '<div class="log-entry">Подводим итоги...</div>';
+    
+    // Ждём ещё 1 секунду и показываем результат
+    setTimeout(function() {
+        calculateAndShowResult(playerChoice, opponentChoice);
+    }, 1000);
 }
 
 // Расчет и показ результата
@@ -766,6 +790,12 @@ function showResultScreen(result, title, message, reward, playerChoice, opponent
 
 // Сыграть ещё раз
 function playAgain() {
+    // Сбрасываем текущую игру
+    gameState.currentGame = null;
+    
+    // Сбрасываем отображение боя
+    resetBattleDisplay();
+    
     if (gameState.currentGame && gameState.currentGame.mode === 'pvp') {
         // PvP: ищем нового противника
         startPvPSearch();
