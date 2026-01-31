@@ -9,24 +9,25 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <div id="loading-screen">
+    <!-- Экран загрузки -->
+    <div id="loading-screen" class="screen">
         <div class="loader">
-            <div class="rocket">🚀</div>
+            <div class="loading-animation" id="loading-animation"></div>
             <div class="loading-text">Загрузка игры...</div>
-            <div class="progress-bar">
-                <div class="progress"></div>
-            </div>
         </div>
     </div>
 
+    <!-- Главное меню -->
     <div id="main-menu" class="screen hidden">
         <div class="header">
             <div class="diamond-counter">
-                <i class="fas fa-gem"></i>
-                <span id="total-diamonds">100</span>
+                <img src="assets/icons/gem.png" alt="💎" class="gem-icon">
+                <span id="total-diamonds">0</span>
             </div>
             <div class="player-info">
-                <div class="avatar" id="user-avatar">👤</div>
+                <div class="avatar" id="user-avatar">
+                    <img src="assets/icons/avatar.png" alt="👤">
+                </div>
                 <div class="name" id="username">Игрок</div>
             </div>
         </div>
@@ -87,43 +88,172 @@
         </div>
     </div>
 
-    <script src="game.js"></script>
-    
-    <script>
-        // Простая инициализация
-        document.addEventListener('DOMContentLoaded', function() {
-            // Инициализируем Telegram Web App
-            if (window.Telegram && Telegram.WebApp) {
-                Telegram.WebApp.ready();
-                Telegram.WebApp.expand();
-                
-                // Получаем данные пользователя
-                const user = Telegram.WebApp.initDataUnsafe?.user;
-                if (user) {
-                    document.getElementById('username').textContent = user.first_name || 'Игрок';
-                }
-            }
+    <!-- Поиск противника -->
+    <div id="search-screen" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="cancelSearch()">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>ПОИСК ПРОТИВНИКА</h2>
+        </div>
+
+        <div class="search-content">
+            <div class="search-animation">
+                <div class="searching-animation" id="searching-animation"></div>
+                <div class="search-text">Ищем живого соперника...</div>
+            </div>
+
+            <div class="search-timer">
+                <div class="timer-circle">
+                    <div class="timer-text" id="search-timer">15</div>
+                </div>
+                <div class="timer-label">СЕКУНД</div>
+            </div>
+
+            <div class="search-info">
+                <p>Если противник не найдётся за 15 секунд, вы сразитесь с ботом!</p>
+            </div>
+
+            <button class="cancel-btn" onclick="cancelSearch()">
+                <i class="fas fa-times"></i> ОТМЕНИТЬ ПОИСК
+            </button>
+        </div>
+    </div>
+
+    <!-- Экран боя -->
+    <div id="battle-screen" class="screen hidden">
+        <div class="battle-header">
+            <div class="battle-info">
+                <div class="battle-type" id="battle-type">PvP БИТВА</div>
+                <div class="round-counter" id="round-counter">Раунд 1</div>
+            </div>
+            <div class="timer" id="battle-timer">10</div>
+        </div>
+
+        <div class="players-container">
+            <!-- Игрок -->
+            <div class="player you">
+                <div class="player-name" id="player-name">Вы</div>
+                <div class="player-choice-display" id="player-choice-display">
+                    <!-- Здесь будет PNG или GIF -->
+                </div>
+            </div>
+
+            <!-- VS -->
+            <div class="vs">VS</div>
+
+            <!-- Противник -->
+            <div class="player opponent">
+                <div class="player-name" id="opponent-name">Поиск...</div>
+                <div class="player-choice-display" id="opponent-choice-display">
+                    <!-- Здесь будет PNG или GIF -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Кнопки выбора -->
+        <div class="choices-container">
+            <button class="choice-btn rock-btn" onclick="makeChoice('rock')">
+                <div class="choice-icon" id="rock-icon"></div>
+                <div class="choice-name">КАМЕНЬ</div>
+            </button>
             
-            // Показываем меню через 2 секунды
-            setTimeout(function() {
-                document.getElementById('loading-screen').classList.add('hidden');
-                document.getElementById('main-menu').classList.remove('hidden');
-                document.querySelector('.progress').style.width = '100%';
-            }, 2000);
-        });
-        
-        // Простые функции
-        window.startPvPSearch = function() {
-            alert('Режим PvP скоро будет доступен! Пока играйте с ботом.');
-        };
-        
-        window.showScreen = function(screen) {
-            alert('Экран ' + screen + ' в разработке!');
-        };
-        
-        window.showComingSoon = function() {
-            alert('Скоро будет доступно!');
-        };
-    </script>
+            <button class="choice-btn paper-btn" onclick="makeChoice('paper')">
+                <div class="choice-icon" id="paper-icon"></div>
+                <div class="choice-name">БУМАГА</div>
+            </button>
+            
+            <button class="choice-btn scissors-btn" onclick="makeChoice('scissors')">
+                <div class="choice-icon" id="scissors-icon"></div>
+                <div class="choice-name">НОЖНИЦЫ</div>
+            </button>
+        </div>
+
+        <div class="battle-log" id="battle-log">
+            <div class="log-entry">Выберите ваш ход!</div>
+        </div>
+    </div>
+
+    <!-- Результат боя -->
+    <div id="result-screen" class="screen hidden">
+        <div class="result-overlay">
+            <div class="result-content">
+                <div class="result-title" id="result-title">ПОБЕДА!</div>
+                
+                <div class="result-details">
+                    <div class="result-message" id="result-message">Вы победили в бою!</div>
+                    
+                    <div class="reward" id="reward-container">
+                        <img src="assets/icons/gem.png" alt="💎" class="gem-icon">
+                        <span id="reward-amount">+5</span>
+                    </div>
+                    
+                    <div class="choices-preview">
+                        <div class="choice-preview" id="player-preview"></div>
+                        <div class="vs-small">VS</div>
+                        <div class="choice-preview" id="opponent-preview"></div>
+                    </div>
+                </div>
+
+                <div class="result-buttons">
+                    <button class="result-btn again" onclick="playAgain()">
+                        <i class="fas fa-redo"></i> СЫГРАТЬ ЕЩЁ
+                    </button>
+                    <button class="result-btn menu" onclick="showScreen('main-menu')">
+                        <i class="fas fa-home"></i> НАЗАД
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Настройки -->
+    <div id="settings-screen" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>НАСТРОЙКИ</h2>
+        </div>
+
+        <div class="settings-content">
+            <div class="setting-group">
+                <h3><i class="fas fa-volume-up"></i> Звук</h3>
+                <div class="setting">
+                    <span>Звуки игры</span>
+                    <label class="switch">
+                        <input type="checkbox" id="sound-toggle" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="setting-group">
+                <h3><i class="fas fa-palette"></i> Внешний вид</h3>
+                <div class="setting">
+                    <span>Тёмная тема</span>
+                    <label class="switch">
+                        <input type="checkbox" id="theme-toggle">
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="about">
+                <p>Paper Win Rock v1.0</p>
+                <p>Сделано с ❤️ для Telegram Mini Apps</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Уведомление -->
+    <div id="notification" class="hidden">
+        <div class="notification-content">
+            <img src="assets/icons/gem.png" alt="💎" class="gem-icon small">
+            <span id="notification-text">+5 алмазов</span>
+        </div>
+    </div>
+
+    <script src="game.js"></script>
 </body>
 </html>
