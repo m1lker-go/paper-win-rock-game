@@ -51,7 +51,40 @@ const gameState = {
 // Инициализация игры
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎮 Paper Win Rock загружается...');
-    
+// Примерное место, где можно добавить код отражения:
+
+// После загрузки DOM
+document.addEventListener('DOMContentLoaded', function() {
+    // Принудительно отражаем элементы
+    setTimeout(function() {
+        // Отражаем иконку игрока
+        const playerElements = document.querySelectorAll('.player, [class*="player"], [id*="player"]');
+        playerElements.forEach(el => {
+            if (el.tagName === 'IMG' || el.classList.contains('icon')) {
+                el.style.transform = 'scaleX(-1)';
+            }
+        });
+        
+        // Отражаем кнопки
+        const buttons = document.querySelectorAll('.choice-btn, .choice-button, .btn-choice');
+        buttons.forEach(btn => {
+            btn.style.transform = 'scaleX(-1)';
+            
+            // Текст внутри кнопки отражаем обратно
+            const textElements = btn.querySelectorAll('span, div, p');
+            textElements.forEach(text => {
+                text.style.transform = 'scaleX(-1)';
+                text.style.display = 'inline-block';
+            });
+            
+            // Иконки внутри кнопок
+            const icons = btn.querySelectorAll('img, svg, i');
+            icons.forEach(icon => {
+                icon.style.transform = 'scaleX(-1)';
+            });
+        });
+    }, 100); // Небольшая задержка для гарантии
+});    
     // Загружаем сохранённое состояние
     loadGameState();
     
@@ -519,3 +552,4 @@ window.cancelSearch = cancelSearch;
 window.makeChoice = makeChoice;
 window.playAgain = playAgain;
 window.showComingSoon = showComingSoon;
+
