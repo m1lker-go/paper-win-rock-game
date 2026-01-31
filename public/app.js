@@ -19,30 +19,6 @@ function initGame() {
             winStreak: 0,
             bestWinStreak: 0,
             totalGames: 0
-// app.js
-let gameState = {
-    diamonds: 100,
-    wins: 0,
-    losses: 0,
-    streak: 0,
-    user: null,
-    skins: {},
-    settings: {}
-};
-
-// Инициализация при загрузке
-document.addEventListener('DOMContentLoaded', async function() {
-    console.log('DOM загружен, начинаем инициализацию...');
-    
-    try {
-        // 1. Инициализируем Telegram
-        if (typeof initTelegramWebApp === 'function') {
-            gameState.user = initTelegramWebApp();
-            console.log('Пользователь:', gameState.user);
-            
-            if (gameState.user) {
-                document.getElementById('username').textContent = gameState.user.firstName;
-            }
         }
     };
     
@@ -104,18 +80,7 @@ function createGameStructure() {
                     </div>
                 </div>
             </div>
-        
-        // 2. Загружаем состояние из localStorage
-        loadGameState();
-        
-        // 3. Обновляем UI
-        updateUI();
-        
-        // 4. Показываем главное меню через 1.5 секунды
-        setTimeout(() => {
-            const loadingScreen = document.getElementById('loading-screen');
-            const mainMenu = document.getElementById('main-menu');
-
+            
             <div class="menu-container">
                 <div class="menu-buttons">
                     <button class="menu-btn battle-btn" onclick="startGame('bot')">
@@ -290,33 +255,10 @@ function startLoading() {
             if (width >= 100) {
                 clearInterval(interval);
                 return;
-            if (loadingScreen) {
-                loadingScreen.classList.add('hidden');
-            }
-            
-            if (mainMenu) {
-                mainMenu.classList.remove('hidden');
             }
             width += 2;
             progressBar.style.width = width + '%';
         }, 30);
-            
-            // Анимация прогресс-бара
-            const progressBar = document.querySelector('.progress');
-            if (progressBar) {
-                progressBar.style.width = '100%';
-            }
-            
-            console.log('Игра успешно загружена!');
-        }, 1500);
-        
-    } catch (error) {
-        console.error('Ошибка инициализации:', error);
-        // В случае ошибки всё равно показываем меню
-        setTimeout(() => {
-            document.getElementById('loading-screen').classList.add('hidden');
-            document.getElementById('main-menu').classList.remove('hidden');
-        }, 1000);
     }
 }
 
@@ -327,29 +269,20 @@ function hideAllScreens() {
         screen.classList.remove('active');
     });
 }
-});
 
 // Показать экран (адаптивная версия)
-// Функции для работы с UI
 function showScreen(screenId) {
     console.log('Переход на экран:', screenId);
     
     hideAllScreens();
-    // Скрываем все экраны
-    document.querySelectorAll('.screen').forEach(screen => {
-        screen.classList.add('hidden');
-    });
-
+    
     // Ищем экран по ID
     let screen = document.getElementById(screenId + '-screen');
     if (!screen) {
         // Пробуем без суффикса
         screen = document.getElementById(screenId);
     }
-    // Показываем нужный экран
-    const targetScreen = document.getElementById(screenId + '-screen') || 
-                        document.getElementById(screenId);
-
+    
     if (screen) {
         screen.classList.add('active');
         currentScreen = screenId;
@@ -359,8 +292,6 @@ function showScreen(screenId) {
         createScreen(screenId);
         // Пробуем снова
         setTimeout(() => showScreen(screenId), 100);
-    if (targetScreen) {
-        targetScreen.classList.remove('hidden');
     }
 }
 
@@ -397,7 +328,7 @@ function createScreen(screenId) {
 // Обновить UI пользователя
 function updateUserUI() {
     if (!userData) return;
-
+    
     const usernameElement = document.getElementById('username');
     const diamondElement = document.getElementById('diamond-count');
     
@@ -409,9 +340,6 @@ function updateUserUI() {
 function startGame(type) {
     if (type === 'bot') {
         showScreen('difficulty');
-    // Если показываем магазин или коллекцию, обновляем
-    if (screenId === 'shop' || screenId === 'backpack') {
-        updateShop();
     }
 }
 
@@ -462,20 +390,10 @@ function makeChoice(choice) {
     }
     
     addLogEntry(`Вы выбрали: ${getChoiceName(choice)}`);
-function updateUI() {
-    // Обновляем алмазы
-    const diamondElements = document.querySelectorAll('#diamond-count, #shop-balance');
-    diamondElements.forEach(el => {
-        if (el) el.textContent = gameState.diamonds;
-    });
-
+    
     setTimeout(() => {
         botMakeChoice(choice);
     }, 1000);
-    // Обновляем статистику
-    document.getElementById('stat-wins').textContent = gameState.wins;
-    document.getElementById('stat-losses').textContent = gameState.losses;
-    document.getElementById('stat-streak').textContent = gameState.streak;
 }
 
 // Бот делает ход
@@ -499,12 +417,6 @@ function botMakeChoice(playerChoice) {
             botChoice = winningMoves[playerChoice];
         } else {
             botChoice = choices[Math.floor(Math.random() * 3)];
-function loadGameState() {
-    try {
-        const saved = localStorage.getItem('paperWinRockState');
-        if (saved) {
-            const parsed = JSON.parse(saved);
-            gameState = { ...gameState, ...parsed };
         }
     } else {
         if (random < 0.7) {
@@ -522,8 +434,6 @@ function loadGameState() {
     const botChoiceElement = document.getElementById('player2-choice');
     if (botChoiceElement) {
         botChoiceElement.textContent = getChoiceEmoji(botChoice);
-    } catch (error) {
-        console.error('Ошибка загрузки состояния:', error);
     }
     
     addLogEntry(`Бот выбрал: ${getChoiceName(botChoice)}`);
@@ -552,11 +462,6 @@ function determineWinner(playerChoice, botChoice) {
     } else {
         showResult('lose', playerChoice, botChoice);
         updateUserStats(false);
-function saveGameState() {
-    try {
-        localStorage.setItem('paperWinRockState', JSON.stringify(gameState));
-    } catch (error) {
-        console.error('Ошибка сохранения состояния:', error);
     }
 }
 
@@ -609,11 +514,6 @@ function showResult(result, playerChoice, botChoice) {
         showScreen('result');
     }, 1000);
 }
-// Экспортируем для использования в других файлах
-window.showScreen = showScreen;
-window.gameState = gameState;
-window.saveGameState = saveGameState;
-window.updateUI = updateUI;
 
 // Обновить статистику пользователя
 function updateUserStats(isWin) {
@@ -626,14 +526,9 @@ function updateUserStats(isWin) {
     } else {
         userData.losses += 1;
         userData.stats.winStreak = 0;
-// Простые функции для кнопок (заглушки)
-window.startGame = function(mode) {
-    if (mode === 'bot') {
-        showScreen('difficulty');
     }
     userData.stats.totalGames += 1;
 }
-};
 
 // Вспомогательные функции
 function getChoiceEmoji(choice) {
@@ -658,18 +553,9 @@ function getChoiceName(choice) {
 function startBattleTimer() {
     let time = 10;
     const timerElement = document.getElementById('round-timer');
-window.startBotGame = function(difficulty) {
-    console.log('Начинаем игру со сложностью:', difficulty);
-    showScreen('battle');
-
+    
     if (gameTimer) clearInterval(gameTimer);
-    // Обновляем информацию о боте
-    document.getElementById('battle-mode').textContent = 'БОЙ С БОТОМ';
-    document.getElementById('player2-name').textContent = 'Бот';
-    document.getElementById('player2-difficulty').textContent = 
-        difficulty === 'easy' ? 'Новичок' : 
-        difficulty === 'medium' ? 'Средний' : 'Эксперт';
-
+    
     gameTimer = setInterval(() => {
         time--;
         if (timerElement) {
@@ -726,9 +612,6 @@ function startPvPSearch() {
     alert('PvP режим в разработке. Играйте с ботом!');
     showScreen('main-menu');
 }
-    // Начинаем таймер раунда
-    startRoundTimer();
-};
 
 function cancelSearch() {
     showScreen('main-menu');
@@ -744,14 +627,8 @@ function copyReferalLink() {
         .then(() => alert('Ссылка скопирована!'))
         .catch(() => alert('Не удалось скопировать ссылку'));
 }
-window.makeChoice = function(choice) {
-    console.log('Выбран:', choice);
-    // Здесь будет логика выбора
-    showScreen('result');
-};
 
 function playAgain() {
-window.playAgain = function() {
     showScreen('difficulty');
 }
 
@@ -786,7 +663,7 @@ window.copyReferalLink = copyReferalLink;
 window.playAgain = playAgain;
 window.shareResult = shareResult;
 window.surrender = surrender;
-};
 
 // Запустить игру
 document.addEventListener('DOMContentLoaded', initGame);
+
