@@ -12,16 +12,4 @@
     "uuid": "^9.0.0",
     "node-fetch": "^2.6.9"
   }
-},
-  "engines": {
-    "node": ">=16.0.0"
-  },
-  "keywords": [
-    "telegram",
-    "game",
-    "pvp",
-    "rock-paper-scissors"
-  ],
-  "author": "Your Name",
-  "license": "MIT"
 }
