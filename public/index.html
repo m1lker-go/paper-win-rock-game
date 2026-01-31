@@ -9,19 +9,23 @@
     <link rel="stylesheet" href="style.css">
     <style>
         /* Временные стили для отражения */
-        .player-choice-display,
-        .player-choice-display * {
+        .player.you .player-choice-display,
+        .player.you .choice-preview {
             transform: scaleX(-1) !important;
         }
         
-        .choice-btn,
-        .choice-btn * {
-            transform: scaleX(-1) !important;
+        .player.opponent .player-choice-display,
+        .player.opponent .choice-preview {
+            transform: scaleX(1) !important;
+        }
+        
+        .choice-btn {
+            transform: scaleX(-1);
         }
         
         .choice-btn .choice-name {
-            transform: scaleX(-1) !important;
-            display: inline-block !important;
+            transform: scaleX(-1);
+            display: inline-block;
         }
     </style>
 </head>
@@ -58,6 +62,12 @@
                     <i class="fas fa-fist-raised"></i>
                     <span>СРАЖАТЬСЯ</span>
                     <small>PvP или с ботом</small>
+                </button>
+                
+                <button class="menu-btn" onclick="showScreen('quests')">
+                    <i class="fas fa-tasks"></i>
+                    <span>ЗАДАНИЯ</span>
+                    <small>Рефералы и бонусы</small>
                 </button>
                 
                 <button class="menu-btn disabled" onclick="showComingSoon()">
@@ -101,6 +111,106 @@
                         <div class="stat-label">Серия</div>
                     </div>
                 </div>
+                <div class="stat-item">
+                    <div class="stat-icon">👥</div>
+                    <div class="stat-text">
+                        <div class="stat-value" id="referrals-count">0</div>
+                        <div class="stat-label">Рефералы</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Задания и рефералы -->
+    <div id="quests-screen" class="screen hidden">
+        <div class="screen-header">
+            <button class="back-btn" onclick="showScreen('main-menu')">
+                <i class="fas fa-arrow-left"></i>
+            </button>
+            <h2>ЗАДАНИЯ И БОНУСЫ</h2>
+        </div>
+
+        <div class="quests-content">
+            <div class="quest-card main-quest">
+                <div class="quest-header">
+                    <i class="fas fa-user-plus"></i>
+                    <h3>ПРИГЛАСИ ДРУЗЕЙ</h3>
+                </div>
+                <div class="quest-description">
+                    <p>Приглашайте друзей и получайте бонусы!</p>
+                    <div class="reward-info">
+                        <span>За обычного пользователя: <span class="reward-amount">+50 💎</span></span>
+                        <span>За Telegram Premium: <span class="reward-premium">+250 💎</span></span>
+                    </div>
+                </div>
+                <div class="referral-section">
+                    <div class="referral-link-container">
+                        <input type="text" id="referral-link" readonly value="Загрузка...">
+                        <button class="copy-btn" onclick="copyReferralLink()" id="copy-btn">
+                            <i class="fas fa-copy"></i> КОПИРОВАТЬ
+                        </button>
+                    </div>
+                    <div class="referral-stats">
+                        <div class="stat-box">
+                            <span class="stat-label">Приглашено:</span>
+                            <span class="stat-value" id="referrals-total">0</span>
+                        </div>
+                        <div class="stat-box">
+                            <span class="stat-label">Бонусы:</span>
+                            <span class="stat-value" id="referrals-bonus">0 💎</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="quest-footer">
+                    <p class="small-info">Бонус начисляется после 3 матчей приглашённого игрока</p>
+                </div>
+            </div>
+
+            <div class="quest-card daily-quest">
+                <div class="quest-header">
+                    <i class="fas fa-calendar-day"></i>
+                    <h3>ЕЖЕДНЕВНАЯ ЗАДАЧА</h3>
+                </div>
+                <div class="quest-description">
+                    <p>Сыграйте 5 матчей за день</p>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="daily-progress" style="width: 0%"></div>
+                        </div>
+                        <span class="progress-text" id="daily-progress-text">0/5</span>
+                    </div>
+                </div>
+                <div class="quest-reward">
+                    <span>Награда:</span>
+                    <span class="reward">+100 💎</span>
+                </div>
+                <button class="quest-btn" id="daily-claim-btn" onclick="claimDailyReward()" disabled>
+                    <i class="fas fa-gift"></i> ПОЛУЧИТЬ НАГРАДУ
+                </button>
+            </div>
+
+            <div class="quest-card win-quest">
+                <div class="quest-header">
+                    <i class="fas fa-trophy"></i>
+                    <h3>СЕРИЯ ПОБЕД</h3>
+                </div>
+                <div class="quest-description">
+                    <p>Выиграйте 3 матча подряд</p>
+                    <div class="progress-container">
+                        <div class="progress-bar">
+                            <div class="progress-fill" id="streak-progress" style="width: 0%"></div>
+                        </div>
+                        <span class="progress-text" id="streak-progress-text">0/3</span>
+                    </div>
+                </div>
+                <div class="quest-reward">
+                    <span>Награда:</span>
+                    <span class="reward">+75 💎</span>
+                </div>
+                <button class="quest-btn" id="streak-claim-btn" onclick="claimStreakReward()" disabled>
+                    <i class="fas fa-gift"></i> ПОЛУЧИТЬ НАГРАДУ
+                </button>
             </div>
         </div>
     </div>
@@ -151,7 +261,7 @@
             <!-- Игрок -->
             <div class="player you">
                 <div class="player-name" id="player-name">ВЫ</div>
-                <div class="player-choice-display player-hand" id="player-choice-display">
+                <div class="player-choice-display" id="player-choice-display">
                     <!-- Здесь будет PNG или GIF -->
                 </div>
             </div>
@@ -162,7 +272,7 @@
             <!-- Противник -->
             <div class="player opponent">
                 <div class="player-name" id="opponent-name">Поиск...</div>
-                <div class="player-choice-display bot-hand" id="opponent-choice-display">
+                <div class="player-choice-display" id="opponent-choice-display">
                     <!-- Здесь будет PNG или GIF -->
                 </div>
             </div>
@@ -206,9 +316,9 @@
                     </div>
                     
                     <div class="choices-preview">
-                        <div class="choice-preview player-preview" id="player-preview"></div>
+                        <div class="choice-preview" id="player-preview"></div>
                         <div class="vs-small">VS</div>
-                        <div class="choice-preview opponent-preview" id="opponent-preview"></div>
+                        <div class="choice-preview" id="opponent-preview"></div>
                     </div>
                 </div>
 
