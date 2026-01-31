@@ -8,13 +8,13 @@ const CONFIG = {
     REWARD_DRAW: 1 // Алмазов за ничью
 };
 
-// Пути к ресурсам
+// Пути к ресурсам - ИСПРАВЛЕНО!
 const ASSETS = {
     ANIMATIONS: {
         LOADING: 'assets/animations/loading.gif',
-        ROCK_FIGHT: 'assets/animations/rock-fight.gif',
-        PAPER_FIGHT: 'assets/animations/paper-fight.gif',
-        SCISSORS_FIGHT: 'assets/animations/scissors-fight.gif'
+        ROCK: 'assets/animations/rock-animation.gif',
+        PAPER: 'assets/animations/paper-animation.gif',
+        SCISSORS: 'assets/animations/scissors-animation.gif'
     },
     ICONS: {
         ROCK: 'assets/icons/rock.png',
@@ -51,40 +51,7 @@ const gameState = {
 // Инициализация игры
 document.addEventListener('DOMContentLoaded', function() {
     console.log('🎮 Paper Win Rock загружается...');
-// Примерное место, где можно добавить код отражения:
-
-// После загрузки DOM
-document.addEventListener('DOMContentLoaded', function() {
-    // Принудительно отражаем элементы
-    setTimeout(function() {
-        // Отражаем иконку игрока
-        const playerElements = document.querySelectorAll('.player, [class*="player"], [id*="player"]');
-        playerElements.forEach(el => {
-            if (el.tagName === 'IMG' || el.classList.contains('icon')) {
-                el.style.transform = 'scaleX(-1)';
-            }
-        });
-        
-        // Отражаем кнопки
-        const buttons = document.querySelectorAll('.choice-btn, .choice-button, .btn-choice');
-        buttons.forEach(btn => {
-            btn.style.transform = 'scaleX(-1)';
-            
-            // Текст внутри кнопки отражаем обратно
-            const textElements = btn.querySelectorAll('span, div, p');
-            textElements.forEach(text => {
-                text.style.transform = 'scaleX(-1)';
-                text.style.display = 'inline-block';
-            });
-            
-            // Иконки внутри кнопок
-            const icons = btn.querySelectorAll('img, svg, i');
-            icons.forEach(icon => {
-                icon.style.transform = 'scaleX(-1)';
-            });
-        });
-    }, 100); // Небольшая задержка для гарантии
-});    
+    
     // Загружаем сохранённое состояние
     loadGameState();
     
@@ -94,11 +61,17 @@ document.addEventListener('DOMContentLoaded', function() {
     // Обновляем интерфейс
     updateUI();
     
+    // Применяем отражение элементов
+    applyReflection();
+    
     // Имитируем загрузку
     setTimeout(function() {
         document.getElementById('loading-screen').classList.add('hidden');
         document.getElementById('main-menu').classList.remove('hidden');
         console.log('✅ Игра готова!');
+        
+        // Ещё раз применяем отражение после загрузки
+        setTimeout(applyReflection, 100);
     }, 2000);
 });
 
@@ -122,6 +95,51 @@ function initTelegram() {
     } catch (error) {
         console.error('Ошибка инициализации Telegram:', error);
     }
+}
+
+// Функция для отражения элементов
+function applyReflection() {
+    console.log('🔄 Применяем отражение элементов...');
+    
+    // 1. Игрок - отражаем по горизонтали
+    const playerElements = document.querySelectorAll('.player.you, .player-hand');
+    playerElements.forEach(el => {
+        el.style.transform = 'scaleX(-1)';
+        console.log('✅ Отразили игрока:', el);
+    });
+    
+    // 2. Противник - оставляем как есть
+    const botElements = document.querySelectorAll('.player.opponent, .bot-hand');
+    botElements.forEach(el => {
+        el.style.transform = 'scaleX(1)';
+    });
+    
+    // 3. Кнопки выбора - отражаем
+    const choiceButtons = document.querySelectorAll('.choice-btn');
+    choiceButtons.forEach(btn => {
+        btn.style.transform = 'scaleX(-1)';
+        
+        // Текст внутри кнопки оставляем нормальным (отражаем обратно)
+        const textElements = btn.querySelectorAll('.choice-name');
+        textElements.forEach(textEl => {
+            textEl.style.transform = 'scaleX(-1)';
+            textEl.style.display = 'inline-block';
+        });
+        
+        // Иконки внутри кнопок отражаем
+        const icons = btn.querySelectorAll('.choice-icon');
+        icons.forEach(icon => {
+            icon.style.transform = 'scaleX(-1)';
+        });
+    });
+    
+    // 4. Превью в результатах
+    const previews = document.querySelectorAll('.player-preview');
+    previews.forEach(preview => {
+        preview.style.transform = 'scaleX(-1)';
+    });
+    
+    console.log('✅ Отражение применено!');
 }
 
 // Загрузка состояния
@@ -189,6 +207,9 @@ function showScreen(screenId) {
         clearInterval(gameState.searchTimer);
         gameState.searchTimer = null;
     }
+    
+    // Применяем отражение для нового экрана
+    setTimeout(applyReflection, 50);
 }
 
 // Начать поиск PvP
@@ -274,6 +295,9 @@ function initBattle(mode) {
     document.getElementById('round-counter').textContent = `Раунд ${gameState.currentGame.round}`;
     document.getElementById('battle-log').innerHTML = '<div class="log-entry">Выберите ваш ход!</div>';
     
+    // Применяем отражение для боя
+    applyReflection();
+    
     // Запуск таймера боя
     startBattleTimer();
 }
@@ -341,6 +365,7 @@ function makeChoice(choice) {
     const playerDisplay = document.getElementById('player-choice-display');
     playerDisplay.innerHTML = '';
     playerDisplay.style.background = `url(${ASSETS.ICONS[choice.toUpperCase()]}) no-repeat center/contain`;
+    playerDisplay.style.transform = 'scaleX(-1)'; // Отражаем руку игрока
     
     // Обновляем лог
     const choiceNames = {
@@ -386,6 +411,17 @@ function determineOpponentChoice(playerChoice) {
     const opponentDisplay = document.getElementById('opponent-choice-display');
     opponentDisplay.innerHTML = '';
     opponentDisplay.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
+    opponentDisplay.style.transform = 'scaleX(1)'; // Рука бота не отражается
+    
+    // Обновляем лог
+    const choiceNames = {
+        rock: 'Камень',
+        paper: 'Бумага',
+        scissors: 'Ножницы'
+    };
+    
+    document.getElementById('battle-log').innerHTML += 
+        `<div class="log-entry">Противник выбрал ${choiceNames[opponentChoice]}!</div>`;
     
     // Ждём и запускаем анимацию боя
     setTimeout(function() {
@@ -393,29 +429,36 @@ function determineOpponentChoice(playerChoice) {
     }, 1000);
 }
 
-// Анимация боя
+// Анимация боя - ИСПРАВЛЕНО!
 function startFightAnimation(playerChoice, opponentChoice) {
     const playerDisplay = document.getElementById('player-choice-display');
     const opponentDisplay = document.getElementById('opponent-choice-display');
     
-    // Запускаем GIF анимации
-    playerDisplay.style.background = 
-        `url(${ASSETS.ANIMATIONS[`${playerChoice.toUpperCase()}_FIGHT`]}) no-repeat center/contain`;
+    console.log('🎬 Запускаем анимацию боя...');
+    console.log('📂 Путь к анимациям:', ASSETS.ANIMATIONS);
     
-    opponentDisplay.style.background = 
-        `url(${ASSETS.ANIMATIONS[`${opponentChoice.toUpperCase()}_FIGHT`]}) no-repeat center/contain`;
+    // Запускаем GIF анимации - ИСПРАВЛЕНЫ ПУТИ!
+    playerDisplay.style.background = `url(${ASSETS.ANIMATIONS[playerChoice.toUpperCase()]}) no-repeat center/contain`;
+    playerDisplay.style.transform = 'scaleX(-1)'; // Отражаем анимацию игрока
+    
+    opponentDisplay.style.background = `url(${ASSETS.ANIMATIONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
+    opponentDisplay.style.transform = 'scaleX(1)'; // Анимация бота не отражается
     
     // Добавляем анимацию пульсации
     playerDisplay.classList.add('fighting');
     opponentDisplay.classList.add('fighting');
     
+    // Обновляем лог
+    document.getElementById('battle-log').innerHTML += 
+        '<div class="log-entry">СРАЖЕНИЕ!</div>';
+    
     // Через 2 секунды возвращаем PNG и показываем результат
     setTimeout(function() {
-        playerDisplay.style.background = 
-            `url(${ASSETS.ICONS[playerChoice.toUpperCase()]}) no-repeat center/contain`;
+        playerDisplay.style.background = `url(${ASSETS.ICONS[playerChoice.toUpperCase()]}) no-repeat center/contain`;
+        playerDisplay.style.transform = 'scaleX(-1)';
         
-        opponentDisplay.style.background = 
-            `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
+        opponentDisplay.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
+        opponentDisplay.style.transform = 'scaleX(1)';
         
         playerDisplay.classList.remove('fighting');
         opponentDisplay.classList.remove('fighting');
@@ -494,11 +537,11 @@ function showResultScreen(result, title, message, reward, playerChoice, opponent
     const playerPreview = document.getElementById('player-preview');
     const opponentPreview = document.getElementById('opponent-preview');
     
-    playerPreview.style.background = 
-        `url(${ASSETS.ICONS[playerChoice.toUpperCase()]}) no-repeat center/contain`;
+    playerPreview.style.background = `url(${ASSETS.ICONS[playerChoice.toUpperCase()]}) no-repeat center/contain`;
+    playerPreview.style.transform = 'scaleX(-1)'; // Отражаем превью игрока
     
-    opponentPreview.style.background = 
-        `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
+    opponentPreview.style.background = `url(${ASSETS.ICONS[opponentChoice.toUpperCase()]}) no-repeat center/contain`;
+    opponentPreview.style.transform = 'scaleX(1)'; // Превью бота не отражается
     
     // Показываем экран
     showScreen('result');
