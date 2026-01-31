@@ -3,7 +3,7 @@ const express = require('express');
 const path = require('path');
 const crypto = require('crypto');
 
-const token = '8365584044:AAESH0_vHwEhN9P05xgpJl8MPMNbbEpqRG0';
+const token = process.env.BOT_TOKEN;
 const webhookUrl = 'https://paper-win-rock.onrender.com';
 
 const bot = new TelegramBot(token, { polling: false });
@@ -696,4 +696,5 @@ app.listen(PORT, '0.0.0.0', async () => {
         console.error('❌ Ошибка webhook:', err);
     }
 });
+
 
