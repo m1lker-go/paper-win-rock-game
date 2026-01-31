@@ -11,9 +11,11 @@ const PORT = process.env.PORT || 3000;
 const RENDER_URL = process.env.RENDER_EXTERNAL_URL || `http://localhost:${PORT}`;
 
 console.log('🚀 Запуск Paper-Win-Rock на Render...');
+console.log('📁 Текущая директория:', __dirname);
 
 if (!BOT_TOKEN) {
   console.error('❌ ОШИБКА: Не задан BOT_TOKEN!');
+  console.error('ℹ️ Установите BOT_TOKEN в настройках Render Environment');
   process.exit(1);
 }
 
@@ -62,12 +64,15 @@ io.on('connection', (socket) => {
       activePvPGames.set(gameId, game);
       
       // Уведомляем обоих игроков
-      io.to(sessions.get(opponent.userId).socketId).emit('pvpMatchFound', {
-        gameId,
-        opponentId: userId,
-        opponentName: userName,
-        message: 'Противник найден!'
-      });
+      const opponentSession = sessions.get(opponent.userId);
+      if (opponentSession) {
+        io.to(opponentSession.socketId).emit('pvpMatchFound', {
+          gameId,
+          opponentId: userId,
+          opponentName: userName,
+          message: 'Противник найден!'
+        });
+      }
       
       socket.emit('pvpMatchFound', {
         gameId,
@@ -214,18 +219,82 @@ function generateReferralCode(userId) {
 }
 
 // ============ API ДЛЯ ИГРЫ ============
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Раздача статических файлов
 app.use(express.static(path.join(__dirname)));
 app.use('/client', express.static(path.join(__dirname, 'client')));
 app.use('/public', express.static(path.join(__dirname, 'public')));
 
+// Главная страница
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>Paper Win Rock 🎮</title>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <style>
+            body {
+                font-family: Arial, sans-serif;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                text-align: center;
+                padding: 40px;
+                min-height: 100vh;
+                display: flex;
+                flex-direction: column;
+                justify-content: center;
+                align-items: center;
+            }
+            .container {
+                background: rgba(255, 255, 255, 0.1);
+                backdrop-filter: blur(10px);
+                border-radius: 20px;
+                padding: 40px;
+                box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+                max-width: 600px;
+                width: 90%;
+            }
+            h1 {
+                color: #ff9f43;
+                font-size: 3rem;
+                margin-bottom: 20px;
+            }
+            .btn {
+                display: inline-block;
+                background: linear-gradient(45deg, #ff9f43, #ff7f00);
+                color: white;
+                padding: 15px 30px;
+                border-radius: 50px;
+                text-decoration: none;
+                font-size: 1.2rem;
+                font-weight: bold;
+                margin: 15px;
+                transition: all 0.3s ease;
+            }
+            .btn:hover {
+                transform: translateY(-3px);
+                box-shadow: 0 6px 20px rgba(255, 159, 67, 0.6);
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>🎮 Paper Win Rock</h1>
+            <p>Добро пожаловать в игру Камень-Ножницы-Бумага с PvP режимом!</p>
+            <p>Сервер работает корректно. Бот запущен.</p>
+            <a href="https://t.me/PaperWinRock_bot" class="btn" target="_blank">🚀 Перейти к боту в Telegram</a>
+            <p><small>Используйте Telegram бота для игры</small></p>
+        </div>
+    </body>
+    </html>
+  `);
 });
 
-app.get('/app', (req, res) => {
-  res.sendFile(path.join(__dirname, 'index.html'));
-});
-// Получение статистики пользователя
+// API эндпоинты
 app.get('/api/user/:id', (req, res) => {
   const userId = parseInt(req.params.id);
   
@@ -250,7 +319,6 @@ app.get('/api/user/:id', (req, res) => {
   }
 });
 
-// Обновление статистики после игры
 app.post('/api/update', (req, res) => {
   try {
     const { userId, result, goldChange } = req.body;
@@ -283,75 +351,25 @@ app.post('/api/update', (req, res) => {
   }
 });
 
-// Реферальная система API
-app.post('/api/referral/register', (req, res) => {
-  const { userId, referralCode } = req.body;
-  
-  if (!referralCode || !userId) {
-    return res.status(400).json({ success: false, message: 'Неверные данные' });
-  }
-  
-  // Проверяем, есть ли такой реферальный код
-  const referrerId = referralCode.split('_')[1];
-  if (!referrerId || referrerId === userId.toString()) {
-    return res.status(400).json({ success: false, message: 'Неверный реферальный код' });
-  }
-  
-  // Сохраняем реферала
-  if (!referrals.has(referrerId)) {
-    referrals.set(referrerId, []);
-  }
-  
-  const referrerList = referrals.get(referrerId);
-  if (!referrerList.includes(userId)) {
-    referrerList.push(userId);
-    
-    // Начисляем бонус пригласившему
-    if (userStats.has(referrerId)) {
-      const stats = userStats.get(referrerId);
-      stats.gold += 50;
-      userStats.set(referrerId, stats);
-    }
-  }
-  
-  res.json({ success: true, message: 'Реферал зарегистрирован' });
-});
-
-app.get('/api/referral/:userId/stats', (req, res) => {
-  const userId = req.params.userId;
-  const referrerList = referrals.get(userId) || [];
-  
+// Health check для Render
+app.get('/health', (req, res) => {
   res.json({
-    success: true,
-    referrals: referrerList.length,
-    list: referrerList
-  });
-});
-
-// API для PvP
-app.get('/api/pvp/queue', (req, res) => {
-  res.json({
-    success: true,
-    queueSize: pvpQueue.length,
+    status: 'ok',
+    uptime: process.uptime(),
+    timestamp: new Date().toISOString(),
+    game: 'Paper-Win-Rock',
+    version: '2.0.0',
+    playersOnline: sessions.size,
+    pvpQueue: pvpQueue.length,
     activeGames: activePvPGames.size
   });
 });
 
-app.get('/api/pvp/game/:gameId', (req, res) => {
-  const game = activePvPGames.get(req.params.gameId);
-  if (game) {
-    res.json({ success: true, game });
-  } else {
-    res.status(404).json({ success: false, message: 'Игра не найдена' });
-  }
-});
-// Добавьте после существующих импортов:
-const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 // ============ КОМАНДЫ БОТА ============
 bot.start(async (ctx) => {
   const userId = ctx.from.id;
   const userName = ctx.from.first_name;
-  const args = ctx.payload; // Параметр после start (например, ?start=PWR_123)
+  const args = ctx.payload;
   
   // Обработка реферальной ссылки
   if (args && args.startsWith('PWR_')) {
@@ -359,7 +377,6 @@ bot.start(async (ctx) => {
     const referrerId = args.split('_')[1];
     
     if (referrerId && referrerId !== userId.toString()) {
-      // Регистрируем реферала через API
       try {
         const response = await fetch(`${RENDER_URL}/api/referral/register`, {
           method: 'POST',
@@ -367,9 +384,11 @@ bot.start(async (ctx) => {
           body: JSON.stringify({ userId, referralCode })
         });
         
-        const data = await response.json();
-        if (data.success) {
-          ctx.reply(`🎉 Вы присоединились по приглашению! Получено 10 кристаллов бонуса.`);
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success) {
+            ctx.reply(`🎉 Вы присоединились по приглашению! Получено 10 кристаллов бонуса.`);
+          }
         }
       } catch (error) {
         console.error('Ошибка регистрации реферала:', error);
@@ -377,7 +396,6 @@ bot.start(async (ctx) => {
     }
   }
   
-  // Генерация реферальной ссылки для пользователя
   const userReferralCode = generateReferralCode(userId);
   const referralLink = `https://t.me/${ctx.botInfo.username}?start=${userReferralCode}`;
   
@@ -385,24 +403,22 @@ bot.start(async (ctx) => {
     `Привет, ${userName}! 👋\n\n` +
     `*Ваша реферальная ссылка:*\n\`${referralLink}\`\n\n` +
     `Приглашайте друзей и получайте бонусы!\n` +
-    `• За друга: +50 кристаллов\n` +
-    `• За друга с Premium: +250 кристаллов\n\n` +
-    `Нажми кнопку ниже, чтобы открыть игру:`;
+    `• За друга: +50 кристаллов\n\n` +
+    `Игра доступна через веб-интерфейс: ${RENDER_URL}`;
   
   ctx.reply(message, {
     parse_mode: 'Markdown',
     reply_markup: {
-      keyboard: [
-        [{ text: '🎮 Играть', web_app: { url: RENDER_URL } }],
-        [{ text: '📊 Статистика' }, { text: '👥 Рефералы' }],
-        [{ text: '📖 Правила' }, { text: '🤝 PvP Бои' }]
-      ],
-      resize_keyboard: true
+      inline_keyboard: [
+        [{ text: '🎮 Открыть игру', web_app: { url: RENDER_URL } }],
+        [{ text: '📊 Статистика', callback_data: 'stats' }],
+        [{ text: '👥 Рефералы', callback_data: 'referrals' }]
+      ]
     }
   });
 });
 
-bot.hears('📊 Статистика', (ctx) => {
+bot.action('stats', (ctx) => {
   const userId = ctx.from.id;
   const stats = userStats.get(userId) || {
     gold: 100,
@@ -416,9 +432,6 @@ bot.hears('📊 Статистика', (ctx) => {
     ? ((stats.wins / stats.gamesPlayed) * 100).toFixed(1) 
     : 0;
   
-  // Получаем статистику рефералов
-  const referralStats = referrals.get(userId.toString()) || [];
-  
   ctx.reply(
     `📊 *Твоя статистика:*\n\n` +
     `💎 Кристаллы: ${stats.gold}\n` +
@@ -426,136 +439,26 @@ bot.hears('📊 Статистика', (ctx) => {
     `😢 Поражений: ${stats.losses}\n` +
     `🤝 Ничьих: ${stats.draws}\n` +
     `🎮 Всего игр: ${stats.gamesPlayed}\n` +
-    `📈 Процент побед: ${winRate}%\n\n` +
-    `👥 *Рефералы:* ${referralStats.length} человек\n` +
-    `💰 Заработано с рефералов: ${referralStats.length * 50} кристаллов\n\n` +
-    `Продолжай в том же духе! 💪`,
+    `📈 Процент побед: ${winRate}%\n\n`,
     { parse_mode: 'Markdown' }
   );
 });
 
-bot.hears('👥 Рефералы', async (ctx) => {
+bot.action('referrals', (ctx) => {
   const userId = ctx.from.id;
   const referralCode = generateReferralCode(userId);
   const referralLink = `https://t.me/${ctx.botInfo.username}?start=${referralCode}`;
-  
-  // Получаем статистику рефералов
-  const referralStats = referrals.get(userId.toString()) || [];
   
   ctx.reply(
     `👥 *Реферальная система*\n\n` +
     `*Ваша ссылка:*\n\`${referralLink}\`\n\n` +
-    `*Приглашено:* ${referralStats.length} человек\n` +
-    `*Заработано:* ${referralStats.length * 50} 💎\n\n` +
     `*Бонусы:*\n` +
-    `• За обычного пользователя: *+50 💎*\n` +
-    `• За Telegram Premium: *+250 💎*\n\n` +
+    `• За приглашенного друга: *+50 💎*\n\n` +
     `Поделитесь ссылкой с друзьями!`,
     {
-      parse_mode: 'Markdown',
-      reply_markup: {
-        inline_keyboard: [
-          [{ text: '📋 Копировать ссылку', callback_data: 'copy_referral' }],
-          [{ text: '📤 Поделиться', callback_data: 'share_referral' }]
-        ]
-      }
+      parse_mode: 'Markdown'
     }
   );
-});
-
-bot.hears('🤝 PvP Бои', (ctx) => {
-  ctx.reply(
-    `⚔️ *PvP Режим*\n\n` +
-    `Сражайтесь с реальными игроками!\n\n` +
-    `*Как играть:*\n` +
-    `1. Нажмите "🎮 Играть"\n` +
-    `2. Выберите "PvP Бой"\n` +
-    `3. Система найдет противника\n` +
-    `4. Сделайте свой ход за 10 секунд\n\n` +
-    `*Награды:*\n` +
-    `• Победа: +15 💎\n` +
-    `• Ничья: +5 💎\n` +
-    `• Поражение: +2 💎\n\n` +
-    `*В очереди сейчас:* ${pvpQueue.length} игроков`,
-    { parse_mode: 'Markdown' }
-  );
-});
-
-bot.action('copy_referral', (ctx) => {
-  const userId = ctx.from.id;
-  const referralCode = generateReferralCode(userId);
-  const referralLink = `https://t.me/${ctx.botInfo.username}?start=${referralCode}`;
-  
-  ctx.answerCbQuery('Ссылка скопирована!');
-  ctx.reply(`Ваша реферальная ссылка:\n${referralLink}\n\nСкопируйте и отправьте другу!`);
-});
-
-bot.action('share_referral', (ctx) => {
-  const userId = ctx.from.id;
-  const referralCode = generateReferralCode(userId);
-  const referralLink = `https://t.me/${ctx.botInfo.username}?start=${referralCode}`;
-  
-  ctx.answerCbQuery('Открываю меню шаринга...');
-  ctx.reply(
-    `Поделитесь с друзьями:\n\n${referralLink}\n\nИли просто перешлите это сообщение!`,
-    {
-      reply_markup: {
-        inline_keyboard: [[
-          { text: '📤 Поделиться в Telegram', url: `https://t.me/share/url?url=${encodeURIComponent(referralLink)}&text=${encodeURIComponent('Присоединяйся к Paper Win Rock! 🎮')}` }
-        ]]
-      }
-    }
-  );
-});
-
-bot.hears('📖 Правила', (ctx) => {
-  ctx.reply(
-    `📖 *Правила игры:*\n\n` +
-    `🎮 **Как играть:**\n` +
-    `1. Нажми "🎮 Играть"\n` +
-    `2. Выбери режим (бот/PvP)\n` +
-    `3. Выбери руку (камень/ножницы/бумага)\n` +
-    `4. У тебя есть 10 секунд на выбор!\n\n` +
-    `⚔️ **Правила победы:**\n` +
-    `• Камень (✊) бьет ножницы (✌)\n` +
-    `• Ножницы (✌) бьют бумагу (✋)\n` +
-    `• Бумага (✋) бьет камень (✊)\n\n` +
-    `💎 **Награды:**\n` +
-    `• Победа в PvP: +15 кристаллов\n` +
-    `• Ничья в PvP: +5 кристаллов\n` +
-    `• Победа с ботом: +10 кристаллов\n` +
-    `• Ничья с ботом: +2 кристалла\n` +
-    `• Поражение: +1 кристалл\n\n` +
-    `👥 **Реферальная система:**\n` +
-    `Приглашайте друзей по своей ссылке!\n\n` +
-    `Удачи! 🍀`,
-    { parse_mode: 'Markdown' }
-  );
-});
-
-// Ответ на любой текст
-bot.on('text', (ctx) => {
-  if (!ctx.message.text.startsWith('/')) {
-    ctx.reply(`Используй /start или кнопки в меню! 🎮`);
-  }
-});
-
-// ============ СЕРВЕР ============
-app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-
-app.get('/health', (req, res) => {
-  res.json({
-    status: 'ok',
-    uptime: process.uptime(),
-    timestamp: new Date().toISOString(),
-    game: 'Paper-Win-Rock',
-    version: '2.0.0',
-    playersOnline: sessions.size,
-    pvpQueue: pvpQueue.length,
-    activeGames: activePvPGames.size
-  });
 });
 
 // Запуск сервера
@@ -587,5 +490,3 @@ process.once('SIGTERM', () => {
   bot.stop('SIGTERM');
   process.exit(0);
 });
-
-
