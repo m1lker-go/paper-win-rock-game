@@ -5,33 +5,13 @@ let currentGame = null;
 let gameTimer = null;
 let battleAnimationInterval = null;
 let waitingAnimationActive = true;
-let selectedDifficulty = 'medium'; // Добавим переменную для хранения выбранной сложности
-
-// Конфигурация игры
-const CONFIG = {
-    SEARCH_TIMEOUT: 15000,
-    BATTLE_TIMEOUT: 10000,
-    ANIMATION_DURATION: 2000,
-    RESULT_DELAY: 3000,
-    REWARD_WIN: 5,
-    REWARD_DRAW: 1,
-    REFERRAL_REWARD_NORMAL: 50,
-    REFERRAL_REWARD_PREMIUM: 250,
-    REFERRAL_MATCHES_REQUIRED: 3,
-    DAILY_QUEST_MATCHES: 5,
-    DAILY_QUEST_REWARD: 100,
-    STREAK_QUEST_WINS: 3,
-    STREAK_QUEST_REWARD: 75
-};
-
-// Пути к ресурсам
+// Добавим в начало app.js после объявления переменных
 const ASSETS = {
     ANIMATIONS: {
         LOADING: 'assets/animations/loading.gif',
         ROCK: 'assets/animations/rock-animation.gif',
         PAPER: 'assets/animations/paper-animation.gif',
-        SCISSORS: 'assets/animations/scissors-animation.gif',
-        FIGHT: 'assets/animations/fight-animation.gif'
+        SCISSORS: 'assets/animations/scissors-animation.gif'
     },
     ICONS: {
         ROCK: 'assets/icons/rock.png',
@@ -41,8 +21,6 @@ const ASSETS = {
         AVATAR: 'assets/icons/avatar.png'
     }
 };
-
-// Удаляем дублирующееся объявление ASSETS, которое было ниже
 
 // Обновим функцию startLoading
 function startLoading() {
@@ -246,6 +224,32 @@ function updateLastLogin() {
 // Сохранение данных пользователя
 function saveUserData() {
     localStorage.setItem(`pwr_user_${userData.id}`, JSON.stringify(userData));
+}
+
+// Загрузка игры
+function startLoading() {
+    const progressBar = document.querySelector('.progress');
+    if (progressBar) {
+        let width = 0;
+        const interval = setInterval(() => {
+            if (width >= 100) {
+                clearInterval(interval);
+                
+                // Загружаем данные
+                updateUserUI();
+                loadSkins();
+                loadTasks();
+                
+                // Показываем главное меню через 0.5 секунды
+                setTimeout(() => {
+                    showScreen('main-menu');
+                }, 500);
+                return;
+            }
+            width += 2;
+            progressBar.style.width = width + '%';
+        }, 20);
+    }
 }
 
 // Показать экран
@@ -471,8 +475,7 @@ function makeChoice(choice) {
     
     const player1Choice = document.getElementById('player1-choice');
     if (player1Choice) {
-        // Используем PNG иконки вместо эмодзи с отражением для игрока
-        player1Choice.innerHTML = `<img src="${ASSETS.ICONS[choice.toUpperCase()]}" alt="${choice}" style="transform: scaleX(-1);">`;
+        player1Choice.textContent = getSkinEmoji('choice', choice);
         player1Choice.style.display = 'block';
     }
     
@@ -520,59 +523,19 @@ function botMakeChoice(playerChoice) {
     
     currentGame.botChoice = botChoice;
     
-    // Обновляем выбор бота (без отражения)
+    // Обновляем выбор бота
     const player2Choice = document.getElementById('player2-choice');
     if (player2Choice) {
-        // Используем PNG иконки вместо эмодзи без отражения для бота
-        player2Choice.innerHTML = `<img src="${ASSETS.ICONS[botChoice.toUpperCase()]}" alt="${botChoice}" style="transform: scaleX(1);">`;
+        player2Choice.textContent = getChoiceEmoji(botChoice);
         player2Choice.style.display = 'block';
     }
     
     addLogEntry(`Бот выбрал: ${getChoiceName(botChoice)}`);
     
-    // Запускаем анимацию боя
-    startFightAnimation(playerChoice, botChoice);
-}
-
-// Анимация боя
-function startFightAnimation(playerChoice, opponentChoice) {
-    const player1Choice = document.getElementById('player1-choice');
-    const player2Choice = document.getElementById('player2-choice');
-    
-    console.log('🎬 Запускаем анимацию боя...');
-    
-    // Используем fight-animation.gif вместо отдельных анимаций
-    const fightAnimation = ASSETS.ANIMATIONS.FIGHT;
-    
-    // Для игрока (слева) - отражаем по горизонтали
-    if (player1Choice) {
-        player1Choice.innerHTML = `<img src="${fightAnimation}" alt="fight" style="transform: scaleX(-1); width: 100%; height: 100%;">`;
-    }
-    
-    // Для противника (справа) - оставляем как есть
-    if (player2Choice) {
-        player2Choice.innerHTML = `<img src="${fightAnimation}" alt="fight" style="transform: scaleX(1); width: 100%; height: 100%;">`;
-    }
-    
-    // Обновляем лог
-    addLogEntry('СРАЖЕНИЕ!');
-    
-    // Через 2 секунды возвращаем PNG и показываем результат
+    // Определяем победителя через 1 секунду
     setTimeout(() => {
-        // Возвращаем PNG иконки выбора
-        if (player1Choice) {
-            player1Choice.innerHTML = `<img src="${ASSETS.ICONS[playerChoice.toUpperCase()]}" alt="${playerChoice}" style="transform: scaleX(-1);">`;
-        }
-        
-        if (player2Choice) {
-            player2Choice.innerHTML = `<img src="${ASSETS.ICONS[opponentChoice.toUpperCase()]}" alt="${opponentChoice}" style="transform: scaleX(1);">`;
-        }
-        
-        // Ждём ещё 1 секунду и показываем результат
-        setTimeout(() => {
-            determineWinner(playerChoice, opponentChoice);
-        }, 1000);
-    }, CONFIG.ANIMATION_DURATION);
+        determineWinner(playerChoice, botChoice);
+    }, 1000);
 }
 
 // Определить победителя
@@ -662,10 +625,8 @@ function updateResultScreen(result, playerChoice, botChoice, reward, message) {
     if (resultIcon) resultIcon.textContent = icon;
     if (resultMessage) resultMessage.textContent = getResultMessage(result);
     if (rewardAmount) rewardAmount.textContent = `+${reward} алмазов`;
-    
-    // Используем PNG иконки с отражением для игрока и без отражения для бота
-    if (yourChoice) yourChoice.innerHTML = `<img src="${ASSETS.ICONS[playerChoice.toUpperCase()]}" alt="${playerChoice}" style="transform: scaleX(-1); margin-right: 8px; width: 24px; height: 24px; vertical-align: middle;"> ${getChoiceName(playerChoice)}`;
-    if (enemyChoice) enemyChoice.innerHTML = `<img src="${ASSETS.ICONS[botChoice.toUpperCase()]}" alt="${botChoice}" style="transform: scaleX(1); margin-right: 8px; width: 24px; height: 24px; vertical-align: middle;"> ${getChoiceName(botChoice)}`;
+    if (yourChoice) yourChoice.textContent = `${getChoiceEmoji(playerChoice)} ${getChoiceName(playerChoice)}`;
+    if (enemyChoice) enemyChoice.textContent = `${getChoiceEmoji(botChoice)} ${getChoiceName(botChoice)}`;
 }
 
 // Получить сообщение результата
@@ -731,11 +692,11 @@ function resetChoices() {
     const player2Choice = document.getElementById('player2-choice');
     
     if (player1Choice) {
-        player1Choice.innerHTML = '❓';
+        player1Choice.textContent = '❓';
         player1Choice.style.display = 'none';
     }
     if (player2Choice) {
-        player2Choice.innerHTML = '❓';
+        player2Choice.textContent = '❓';
         player2Choice.style.display = 'none';
     }
 }
@@ -1257,12 +1218,14 @@ function changeSkin(type) {
 
 // Экспорт функций в глобальную область видимости
 window.showScreen = showScreen;
+window.startGame = startGame;
 window.startBotGame = startBotGame;
 window.makeChoice = makeChoice;
 window.showHint = showHint;
 window.closeHint = closeHint;
 window.startPvPSearch = startPvPSearch;
 window.cancelSearch = cancelSearch;
+window.showSettings = showSettings;
 window.saveSettings = saveSettings;
 window.changeSkin = changeSkin;
 window.copyReferalLink = copyReferalLink;
@@ -1274,4 +1237,3 @@ window.surrender = surrender;
 window.buySkin = buySkin;
 window.equipSkin = equipSkin;
 window.loadTasks = loadTasks;
-
