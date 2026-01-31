@@ -428,6 +428,16 @@ body {
     align-items: center;
     justify-content: center;
     overflow: hidden;
+    transition: all 0.3s ease;
+}
+
+/* ИГРОК ОТРАЖЕН, БОТ - НЕТ */
+.player.you .player-choice-display {
+    transform: scaleX(-1) !important;
+}
+
+.player.opponent .player-choice-display {
+    transform: scaleX(1) !important;
 }
 
 .vs {
@@ -457,16 +467,27 @@ body {
     cursor: pointer;
     transition: all 0.3s ease;
     width: 160px;
+    transform: scaleX(-1); /* Кнопки отражены */
 }
 
 .choice-btn:hover {
     background: #333;
     border-color: #FF9500;
-    transform: translateY(-5px);
+    transform: scaleX(-1) translateY(-5px); /* Учитываем отражение */
 }
 
 .choice-btn:active {
-    transform: translateY(0);
+    transform: scaleX(-1) translateY(0);
+}
+
+/* Текст в кнопках возвращаем в нормальное состояние */
+.choice-btn .choice-name {
+    transform: scaleX(-1);
+    display: inline-block;
+    font-size: 14px;
+    color: #aaa;
+    text-transform: uppercase;
+    font-weight: bold;
 }
 
 .choice-icon {
@@ -475,13 +496,7 @@ body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
-}
-
-.choice-name {
-    font-size: 14px;
-    color: #aaa;
-    text-transform: uppercase;
-    font-weight: bold;
+    transform: scaleX(-1); /* Иконки в кнопках тоже отражены */
 }
 
 /* Иконки для кнопок */
@@ -584,6 +599,16 @@ body {
     background-size: contain;
     background-repeat: no-repeat;
     background-position: center;
+}
+
+/* Игрок в превью отражен */
+.player-preview {
+    transform: scaleX(-1);
+}
+
+/* Бот в превью не отражен */
+.opponent-preview {
+    transform: scaleX(1);
 }
 
 .vs-small {
@@ -740,19 +765,33 @@ input:checked + .slider:before {
 
 /* Анимации для боя */
 @keyframes fightAnimation {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.1); }
-    100% { transform: scale(1); }
+    0% { transform: scaleX(-1) scale(1); }
+    50% { transform: scaleX(-1) scale(1.1); }
+    100% { transform: scaleX(-1) scale(1); }
 }
 
 .fighting {
     animation: fightAnimation 0.3s ease-in-out 3;
 }
 
+.player.opponent .fighting {
+    animation: fightAnimation 0.3s ease-in-out 3;
+    transform: scaleX(1) !important;
+}
+
 @keyframes pulse {
-    0% { box-shadow: 0 0 0 0 rgba(255, 149, 0, 0.7); }
-    70% { box-shadow: 0 0 0 10px rgba(255, 149, 0, 0); }
-    100% { box-shadow: 0 0 0 0 rgba(255, 149, 0, 0); }
+    0% { 
+        box-shadow: 0 0 0 0 rgba(255, 149, 0, 0.7);
+        border-color: #444;
+    }
+    70% { 
+        box-shadow: 0 0 0 10px rgba(255, 149, 0, 0);
+        border-color: #FF9500;
+    }
+    100% { 
+        box-shadow: 0 0 0 0 rgba(255, 149, 0, 0);
+        border-color: #FF9500;
+    }
 }
 
 .choice-btn.active {
@@ -775,6 +814,15 @@ input:checked + .slider:before {
     .choice-btn {
         width: 110px;
         padding: 10px;
+        transform: scaleX(-1); /* Для мобильных тоже отражены */
+    }
+    
+    .choice-btn:hover {
+        transform: scaleX(-1) translateY(-5px);
+    }
+    
+    .choice-btn:active {
+        transform: scaleX(-1) translateY(0);
     }
     
     .choice-icon {
@@ -811,40 +859,5 @@ input:checked + .slider:before {
         height: 60px;
     }
 }
-/* В начало файла добавьте: */
-* {
-    box-sizing: border-box;
-}
 
-/* ОТРАЖЕНИЕ ЭЛЕМЕНТОВ */
-.player-icon, .player-image, .player-hand {
-    transform: scaleX(-1) !important;
-}
-
-.choice-button {
-    transform: scaleX(-1);
-}
-
-.choice-button span, .choice-button .text {
-    transform: scaleX(-1);
-    display: inline-block;
-}
-
-.choice-button img {
-    transform: scaleX(-1);
-}
-
-.battle-player {
-    transform: scaleX(-1) !important;
-}
-
-.vs-screen .player-side {
-    transform: scaleX(-1);
-}
-
-/* Для мобильных */
-@media (max-width: 768px) {
-    .choices-container .choice-button {
-        transform: scaleX(-1);
-    }
-}
+/* Удалите старый код отражения в конце файла */
