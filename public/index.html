@@ -147,9 +147,14 @@
                 <div class="referral-section">
                     <div class="referral-link-container">
                         <input type="text" id="referral-link" readonly value="Загрузка...">
-                        <button class="copy-btn" onclick="copyReferralLink()" id="copy-btn">
-                            <i class="fas fa-copy"></i> КОПИРОВАТЬ
-                        </button>
+                        <div class="referral-buttons">
+                            <button class="copy-btn" onclick="copyReferralLink()" id="copy-btn">
+                                <i class="fas fa-copy"></i> КОПИРОВАТЬ
+                            </button>
+                            <button class="share-btn" onclick="shareReferralLink()" id="share-btn">
+                                <i class="fas fa-share-alt"></i> ПОДЕЛИТЬСЯ
+                            </button>
+                        </div>
                     </div>
                     <div class="referral-stats">
                         <div class="stat-box">
@@ -163,7 +168,7 @@
                     </div>
                 </div>
                 <div class="quest-footer">
-                    <p class="small-info">Бонус начисляется после 3 матчей приглашённого игрока</p>
+                    <p class="small-info">Бонус начисляется после 3 матчей приглашённого игрока. Бот откроет игру автоматически!</p>
                 </div>
             </div>
 
