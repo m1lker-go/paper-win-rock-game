@@ -214,9 +214,17 @@ function generateReferralCode(userId) {
 }
 
 // ============ API ДЛЯ ИГРЫ ============
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express.static(path.join(__dirname)));
+app.use('/client', express.static(path.join(__dirname, 'client')));
+app.use('/public', express.static(path.join(__dirname, 'public')));
 
+app.get('/', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+app.get('/app', (req, res) => {
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
 // Получение статистики пользователя
 app.get('/api/user/:id', (req, res) => {
   const userId = parseInt(req.params.id);
@@ -579,4 +587,5 @@ process.once('SIGTERM', () => {
   bot.stop('SIGTERM');
   process.exit(0);
 });
+
 
