@@ -226,10 +226,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // Раздача статических файлов
-app.use(express.static(path.join(__dirname)));
-app.use('/client', express.static(path.join(__dirname, 'client')));
-app.use('/public', express.static(path.join(__dirname, 'public')));
-
+app.use(express.static(path.join(__dirname, '..')));
+app.use('/client', express.static(path.join(__dirname, '../client')));
+app.use('/public', express.static(path.join(__dirname, '../public')));
 // Главная страница
 app.get('/', (req, res) => {
   res.send(`
@@ -493,4 +492,5 @@ process.once('SIGTERM', () => {
   bot.stop('SIGTERM');
   process.exit(0);
 });
+
 
