@@ -1,7 +1,7 @@
 {
   "name": "paper-win-rock",
   "version": "2.0.0",
-  "description": "PvP игра Камень-Ножницы-Бумага с ботами, скинами и заданиями для Telegram",
+  "description": "PvP игра Камень-Ножницы-Бумага",
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
