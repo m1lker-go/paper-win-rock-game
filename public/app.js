@@ -72,7 +72,40 @@ function updateUserUI() {
     
     // Остальной код остается прежним...
 }
+// Конфигурация игры
+const CONFIG = {
+    SEARCH_TIMEOUT: 15000,
+    BATTLE_TIMEOUT: 10000,
+    ANIMATION_DURATION: 2000,
+    RESULT_DELAY: 3000,
+    REWARD_WIN: 5,
+    REWARD_DRAW: 1,
+    REFERRAL_REWARD_NORMAL: 50,
+    REFERRAL_REWARD_PREMIUM: 250,
+    REFERRAL_MATCHES_REQUIRED: 3,
+    DAILY_QUEST_MATCHES: 5,
+    DAILY_QUEST_REWARD: 100,
+    STREAK_QUEST_WINS: 3,
+    STREAK_QUEST_REWARD: 75
+};
 
+// Пути к ресурсам
+const ASSETS = {
+    ANIMATIONS: {
+        LOADING: 'assets/animations/loading.gif',
+        ROCK: 'assets/animations/rock-animation.gif',
+        PAPER: 'assets/animations/paper-animation.gif',
+        SCISSORS: 'assets/animations/scissors-animation.gif',
+        FIGHT: 'assets/animations/fight-animation.gif'
+    },
+    ICONS: {
+        ROCK: 'assets/icons/rock.png',
+        PAPER: 'assets/icons/paper.png',
+        SCISSORS: 'assets/icons/scissors.png',
+        GEM: 'assets/icons/gem.png',
+        AVATAR: 'assets/icons/avatar.png'
+    }
+};
 // Обновим функцию loadSkins для использования картинок
 function getSkinImage(type, skinId = 'default') {
     // Для простоты используем эмодзи, но можно заменить на картинки
@@ -1260,3 +1293,4 @@ window.surrender = surrender;
 window.buySkin = buySkin;
 window.equipSkin = equipSkin;
 window.loadTasks = loadTasks;
+
