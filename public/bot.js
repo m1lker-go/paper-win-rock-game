@@ -337,7 +337,8 @@ app.get('/api/pvp/game/:gameId', (req, res) => {
     res.status(404).json({ success: false, message: 'Игра не найдена' });
   }
 });
-
+// Добавьте после существующих импортов:
+const fetch = (...args) => import('node-fetch').then(({default: fetch}) => fetch(...args));
 // ============ КОМАНДЫ БОТА ============
 bot.start(async (ctx) => {
   const userId = ctx.from.id;
@@ -578,3 +579,4 @@ process.once('SIGTERM', () => {
   bot.stop('SIGTERM');
   process.exit(0);
 });
+
