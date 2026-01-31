@@ -231,7 +231,8 @@ app.use('/client', express.static(path.join(__dirname, '../client')));
 app.use('/public', express.static(path.join(__dirname, '../public')));
 // Главная страница
 app.get('/', (req, res) => {
-  res.send(`
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
+});
     <!DOCTYPE html>
     <html>
     <head>
@@ -492,5 +493,6 @@ process.once('SIGTERM', () => {
   bot.stop('SIGTERM');
   process.exit(0);
 });
+
 
 
