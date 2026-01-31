@@ -811,3 +811,94 @@ input:checked + .slider:before {
         height: 60px;
     }
 }
+/* В начало файла добавьте: */
+* {
+    box-sizing: border-box;
+}
+
+/* Отражаем иконку игрока чтобы смотрела на бота */
+.player {
+    transform: scaleX(-1); /* Вот это отражение по горизонтали */
+    animation: shake 0.5s ease-in-out;
+}
+
+/* Отражаем кнопки выбора (камень, бумага, ножницы) */
+.choice-button {
+    transform: scaleX(-1); /* Отражаем каждую кнопку */
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 15px 25px;
+    border: none;
+    border-radius: 15px;
+    background: linear-gradient(145deg, #4a6fa5, #3a5984);
+    color: white;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    box-shadow: 5px 5px 15px rgba(0, 0, 0, 0.2),
+                -5px -5px 15px rgba(255, 255, 255, 0.1);
+}
+
+/* Для текста внутри кнопок возвращаем правильное отображение */
+.choice-button span {
+    transform: scaleX(-1); /* Возвращаем текст в нормальное состояние */
+    display: block;
+    margin-top: 8px;
+    font-size: 14px;
+}
+
+/* Если у вас есть иконки внутри кнопок, их тоже нужно отразить */
+.choice-button img {
+    transform: scaleX(-1); /* Отражаем иконку внутри кнопки */
+    width: 40px;
+    height: 40px;
+    margin-bottom: 5px;
+}
+
+/* Если у вас есть контейнер для кнопок, можно отзеркалить его порядок */
+.choices {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin-top: 30px;
+}
+
+/* Отражаем руки во время анимации боя */
+.battle-hands .player-hand {
+    transform: scaleX(-1) !important; /* Принудительно отражаем руку игрока */
+}
+
+.battle-hands .bot-hand {
+    transform: scaleX(1) !important; /* Рука бота остается как есть */
+}
+
+/* Исправляем анимации - они должны работать после отражения */
+@keyframes playerAttack {
+    0% { transform: scaleX(-1) translateX(0); }
+    50% { transform: scaleX(-1) translateX(50px); }
+    100% { transform: scaleX(-1) translateX(0); }
+}
+
+@keyframes botAttack {
+    0% { transform: scaleX(1) translateX(0); }
+    50% { transform: scaleX(1) translateX(-50px); }
+    100% { transform: scaleX(1) translateX(0); }
+}
+
+/* Обновляем медиа-запросы для мобильных */
+@media (max-width: 600px) {
+    .choices {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    .choice-button {
+        width: 200px;
+        transform: scaleX(-1);
+    }
+    
+    .choice-button span {
+        transform: scaleX(-1);
+    }
+}
